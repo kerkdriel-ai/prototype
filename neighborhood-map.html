@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neighborhood Map — Living Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --black:#0a0a0a; --cream:#F5F0E8; --white:#fff;
+  --green:#2D6A4F; --green-light:#74C69D; --green-pale:#D8F3DC;
+  --grass:#CDE7C8; --grass2:#BFDFB9;
+  --water:#A9D6E5; --water2:#89C2D9;
+  --path:#E7DDC9; --plot:#EAD9B8;
+  --yellow:#FFF570; --orange:#F4A261; --red:#FF6B6B;
+  --text:#1a1a1a; --muted:#666; --border:rgba(0,0,0,0.08);
+  --font:'DM Sans',Helvetica,sans-serif; --serif:'Instrument Serif',Georgia,serif;
+  --radius:28px;
+}
+@property --angle{syntax:'<angle>';initial-value:0deg;inherits:false;}
+@keyframes spin{from{--angle:0deg;}to{--angle:360deg;}}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--white);color:var(--text);font-family:var(--font);font-size:14px;display:flex;flex-direction:column;}
+
+/* ── NAVBAR ── */
+#topbar{
+  height:68px;flex-shrink:0;background:rgba(245,240,232,0.85);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius);
+  display:flex;align-items:center;justify-content:space-between;padding:0 26px;gap:16px;
+  border-bottom:1px solid rgba(0,0,0,0.06);
+}
+.tb-logo{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--green);display:flex;align-items:center;gap:8px;white-space:nowrap;}
+#tb-clock{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);white-space:nowrap;}
+#tb-clock strong{color:var(--text);font-weight:600;}
+.daynight{font-size:15px;}
+.week-progress{display:inline-block;width:72px;height:5px;background:rgba(0,0,0,0.08);border-radius:3px;overflow:hidden;vertical-align:middle;}
+.week-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s;}
+.tb-controls{display:flex;align-items:center;gap:6px;}
+.tb-btn{font-family:var(--font);font-size:14px;font-weight:500;padding:8px 15px;border-radius:200px;cursor:pointer;background:rgba(0,0,0,0.06);border:none;color:var(--text);transition:background .15s;white-space:nowrap;}
+.tb-btn:hover{background:rgba(0,0,0,0.12);}
+.tb-btn.active{background:var(--green);color:#fff;}
+#btn-playpause{width:38px;height:38px;border-radius:50%;padding:0;display:flex;align-items:center;justify-content:center;font-size:14px;position:relative;color:#fff;}
+#btn-playpause::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:calc(100% + 4px);height:calc(100% + 4px);border-radius:50%;z-index:-1;background:var(--text);}
+#btn-playpause:hover::after{background:conic-gradient(from var(--angle),#2D6A4F 0%,#000 50%,#2D6A4F 100%);animation:spin 2s linear infinite;}
+
+/* ── LAYOUT ── */
+#app{flex:1;display:flex;gap:10px;padding:10px;overflow:hidden;}
+
+/* ── MAP ── */
+#map-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--cream);border-radius:var(--radius);}
+.map-header{padding:18px 24px 0;display:flex;align-items:baseline;justify-content:space-between;flex-shrink:0;}
+.map-title{font-family:var(--serif);font-style:italic;font-size:clamp(22px,2.5vw,30px);color:var(--text);letter-spacing:-.02em;}
+.label-tag{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+
+#map-wrap{flex:1;margin:14px 16px 16px;position:relative;overflow:hidden;border-radius:22px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.35), transparent 40%),
+    linear-gradient(160deg,var(--grass) 0%,var(--grass2) 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,0.04);
+}
+#map-wrap.night{
+  background:
+    radial-gradient(circle at 70% 15%, rgba(255,255,255,.18), transparent 45%),
+    linear-gradient(160deg,#3b5a52 0%,#2c4640 100%);
+}
+#map-wrap.night .feat-label,#map-wrap.night .plot-label{color:rgba(255,255,255,.7);}
+#map-svg{position:absolute;inset:0;width:100%;height:100%;}
+
+/* map features */
+.feat{position:absolute;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.feat-pond{background:radial-gradient(circle at 40% 35%,var(--water),var(--water2));box-shadow:inset 0 2px 10px rgba(0,0,0,.12);}
+.feat-park{background:radial-gradient(circle at 40% 35%,#9FD49A,#7FBE7A);border-radius:38% 42% 40% 44%;}
+.feat-square{background:radial-gradient(circle at 45% 40%,#F0E2C4,#E2CFA4);box-shadow:inset 0 2px 8px rgba(0,0,0,.1);}
+.feat-emoji{width:48px;height:48px;opacity:.9;}
+.doodle{display:block;width:100%;height:100%;}
+.plot-house{width:34px;height:30px;display:block;}
+.feat-label{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;color:rgba(0,0,0,.45);white-space:nowrap;letter-spacing:.03em;}
+
+/* plots (homes) */
+.plot{position:absolute;transform:translate(-50%,-50%);width:56px;height:46px;border-radius:10px;
+  background:var(--plot);box-shadow:inset 0 0 0 2px rgba(0,0,0,.06), 0 2px 5px rgba(0,0,0,.05);pointer-events:none;
+  display:flex;align-items:center;justify-content:center;font-size:15px;opacity:.85;}
+.plot-label{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:600;color:rgba(0,0,0,.4);white-space:nowrap;}
+
+/* characters */
+.ch{position:absolute;transform:translate(-50%,-50%);cursor:pointer;z-index:5;will-change:left,top;
+  display:flex;flex-direction:column;align-items:center;gap:2px;transition:filter .2s;}
+.ch:hover{z-index:20;}
+.ch-emoji{width:44px;height:44px;padding:6px;border-radius:50%;background:var(--c,#CDE7C8);box-shadow:0 3px 5px rgba(0,0,0,.2),inset 0 0 0 2px rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;animation:bob 2.4s ease-in-out infinite;}
+.ch.moving .ch-emoji{animation:bob 0.7s ease-in-out infinite;}
+.ch.asleep .ch-emoji{animation:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2)) grayscale(.3);opacity:.8;}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-4px) rotate(2deg);}}
+.ch-name{font-size:10px;font-weight:600;color:var(--text);background:rgba(255,255,255,.82);padding:1px 7px;border-radius:200px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+#map-wrap.night .ch-name{background:rgba(255,255,255,.7);}
+.ch-mood{position:absolute;top:-8px;right:-6px;font-size:13px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
+.ch-ring{position:absolute;top:50%;left:50%;width:48px;height:48px;transform:translate(-50%,-50%);border-radius:50%;border:2.5px solid var(--green);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;}
+.ch.selected .ch-ring{opacity:1;transform:translate(-50%,-50%) scale(1.05);}
+.ch.selected{z-index:25;}
+@keyframes pulse-care{0%{box-shadow:0 0 0 0 rgba(45,106,79,.5);}100%{box-shadow:0 0 0 16px rgba(45,106,79,0);}}
+.ch.just-cared .ch-emoji{border-radius:50%;animation:pulse-care .6s ease, bob 2.4s ease-in-out infinite;}
+
+/* speech bubble */
+.ch-say{position:absolute;bottom:42px;left:50%;transform:translateX(-50%);background:#fff;border-radius:12px;padding:4px 9px;font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.15);opacity:0;transition:opacity .3s;pointer-events:none;max-width:160px;}
+.ch-say.show{opacity:1;}
+.ch-say::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff;border-bottom:0;}
+
+/* legend bar */
+#legend{border-top:1px solid var(--border);padding:9px 18px;display:flex;align-items:center;gap:16px;flex-shrink:0;background:rgba(240,234,225,.7);flex-wrap:wrap;font-size:12px;color:var(--muted);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:18px;text-align:center;}
+.legend-spacer{flex:1;}
+.legend-hint{font-style:italic;color:rgba(0,0,0,.4);}
+
+/* ── SIDEBAR ── */
+#sidebar{width:320px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;}
+.panel{background:var(--white);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;flex:1;}
+
+/* overview */
+#overview{display:flex;flex-direction:column;overflow:hidden;flex:1;}
+.ov-head{padding:18px 20px 12px;flex-shrink:0;}
+.sb-title{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.ov-sub{font-size:13px;color:var(--text);margin-top:3px;}
+.roster{padding:0 12px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;flex-shrink:0;max-height:34%;}
+.roster::-webkit-scrollbar{width:4px;}.roster::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:2px;}
+.roster-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:12px;cursor:pointer;transition:background .15s;}
+.roster-row:hover{background:var(--green-pale);}
+.rr-emoji{width:30px;height:30px;padding:3px;border-radius:9px;background:var(--c,#CDE7C8);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rr-info{flex:1;min-width:0;}
+.rr-name{font-size:13px;font-weight:600;}
+.rr-status{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rr-h{font-size:12px;font-weight:700;width:34px;text-align:right;}
+#ov-log-head{padding:12px 20px 6px;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex-shrink:0;border-top:1px solid var(--border);}
+#ov-log{flex:1;overflow-y:auto;padding:0 12px 12px;}
+#ov-log::-webkit-scrollbar{width:3px;}#ov-log::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:2px;}
+.log-entry{padding:8px 11px;border-radius:12px;margin-bottom:6px;background:var(--cream);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:translateX(0);}}
+.log-time{font-size:10px;color:var(--muted);margin-bottom:2px;}
+.log-text{font-size:12px;color:var(--text);line-height:1.5;}
+.log-text .cn{font-weight:700;}
+.log-entry.care{background:var(--green-pale);}
+.log-entry.weather{background:#EEF6FF;}
+
+/* ── CHARACTER DETAIL ── */
+#detail{display:none;flex-direction:column;overflow:hidden;flex:1;}
+#detail.show{display:flex;}
+.dt-top{padding:16px 20px 14px;flex-shrink:0;background:var(--cream);position:relative;}
+.dt-back{font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:4px;margin-bottom:12px;padding:5px 10px;border-radius:200px;background:rgba(0,0,0,.05);border:none;font-family:var(--font);}
+.dt-back:hover{background:rgba(0,0,0,.1);color:var(--text);}
+.dt-hero{display:flex;align-items:center;gap:14px;}
+.dt-emoji{width:66px;height:66px;padding:9px;border-radius:18px;background:var(--c,#CDE7C8);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 0 0 2px rgba(255,255,255,.45);}
+.dt-id{flex:1;min-width:0;}
+.dt-name{font-family:var(--serif);font-style:italic;font-size:26px;color:var(--text);letter-spacing:-.02em;line-height:1.1;}
+.dt-type{font-size:12px;color:var(--muted);margin-top:2px;}
+.dt-pers{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:200px;background:rgba(0,0,0,.07);color:rgba(0,0,0,.6);margin-top:7px;}
+.dt-scroll{flex:1;overflow-y:auto;padding:0 20px 16px;}
+.dt-scroll::-webkit-scrollbar{width:4px;}.dt-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px;}
+.dt-section{margin-top:18px;}
+.dt-sec-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:9px;}
+
+/* status + happiness */
+.dt-status{font-size:13px;color:var(--text);background:var(--cream);border-radius:14px;padding:11px 13px;line-height:1.45;}
+.dt-status b{font-weight:700;}
+.h-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.h-bar{flex:1;height:8px;background:rgba(0,0,0,.1);border-radius:5px;overflow:hidden;}
+.h-fill{height:100%;border-radius:5px;transition:width .5s ease,background .5s;}
+.h-pct{font-size:13px;font-weight:700;width:34px;text-align:right;}
+
+/* character bio */
+.dt-bio{font-size:13px;color:var(--text);line-height:1.6;}
+.dt-traits{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.trait{font-size:11px;font-weight:600;padding:4px 11px;border-radius:200px;background:var(--green-pale);color:var(--green);}
+
+/* decisions */
+.dec-list{display:flex;flex-direction:column;gap:6px;}
+.dec{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:13px;background:var(--cream);border:1.5px solid transparent;font-size:12.5px;color:var(--text);transition:all .2s;}
+.dec.active{border-color:var(--green);background:var(--green-pale);}
+.dec-ico{font-size:16px;}
+.dec-txt{flex:1;}
+.dec.active .dec-now{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;}
+.dec-hint{font-size:11px;color:var(--muted);font-style:italic;margin-top:7px;line-height:1.5;}
+
+/* care actions */
+.dt-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.dt-act{padding:10px;border-radius:13px;border:1px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.dt-act:hover{background:var(--green-pale);border-color:var(--green);color:var(--green);}
+.dt-act.primary{background:var(--green);border-color:var(--green);color:#fff;}
+.dt-act.primary:hover{background:#1e5c3a;}
+
+/* history */
+.hist-entry{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.05);}
+.hist-entry:last-child{border:none;}
+.hist-ico{font-size:15px;flex-shrink:0;width:18px;text-align:center;}
+.hist-body{flex:1;}
+.hist-time{font-size:10px;color:var(--muted);}
+.hist-text{font-size:12px;color:var(--text);line-height:1.5;margin-top:1px;}
+.hist-empty{font-size:12px;color:var(--muted);font-style:italic;padding:8px 0;}
+
+/* ── COINS ── */
+#coin-pill{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:#9a7b1a;
+  background:linear-gradient(180deg,#FFF6C8,#FFE9A0);padding:7px 14px 7px 11px;border-radius:200px;
+  box-shadow:inset 0 0 0 1px rgba(180,140,30,.25);white-space:nowrap;transition:transform .15s;}
+#coin-pill .coin-ico{font-size:16px;}
+#coin-pill.pop{transform:scale(1.18);}
+@keyframes coinFloat{0%{opacity:0;transform:translate(-50%,0) scale(.6);}
+  15%{opacity:1;transform:translate(-50%,-14px) scale(1.1);}
+  100%{opacity:0;transform:translate(-50%,-54px) scale(1);}}
+.coin-fx{position:absolute;transform:translate(-50%,0);font-size:15px;font-weight:800;color:#caa024;
+  text-shadow:0 1px 2px rgba(0,0,0,.25),0 0 1px #fff;pointer-events:none;z-index:40;
+  animation:coinFloat 1.1s ease-out forwards;white-space:nowrap;}
+@keyframes reactFloat{0%{opacity:0;transform:translate(-50%,0) scale(.5);}
+  20%{opacity:1;transform:translate(-50%,-18px) scale(1.2);}
+  100%{opacity:0;transform:translate(-50%,-50px) scale(1);}}
+.react-fx{position:absolute;transform:translate(-50%,0);font-size:22px;pointer-events:none;z-index:40;
+  animation:reactFloat 1.3s ease-out forwards;}
+@keyframes confettiFall{to{transform:translate(var(--cx),120px) rotate(var(--cr));opacity:0;}}
+.confetti{position:absolute;width:7px;height:11px;border-radius:2px;pointer-events:none;z-index:39;
+  animation:confettiFall 1s ease-in forwards;}
+
+/* ── GIVE / ERRAND BUTTONS + TRAYS ── */
+.dt-actions2{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px;}
+.dt-act.gift{background:#FFF4DC;border-color:#F0D9A0;color:#9a7b1a;}
+.dt-act.gift:hover{background:#FFE9B8;}
+.dt-act.errand{background:#E9F1FF;border-color:#C3D6F0;color:#3a5a9a;}
+.dt-act.errand:hover{background:#D8E6FB;}
+.dt-act.on{outline:2px solid currentColor;outline-offset:-2px;}
+.tray{display:none;margin-top:8px;background:var(--cream);border-radius:14px;padding:11px;}
+.tray.show{display:block;animation:slideIn .25s ease;}
+.tray-hint{font-size:11px;color:var(--muted);margin-bottom:9px;line-height:1.45;}
+.item-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.item-chip{position:relative;background:#fff;border:1.5px solid var(--border);border-radius:12px;
+  padding:9px 4px 7px;text-align:center;cursor:pointer;transition:all .15s;}
+.item-chip:hover{border-color:var(--green);background:var(--green-pale);transform:translateY(-2px);}
+.item-chip.empty{opacity:.4;cursor:not-allowed;}
+.item-chip.empty:hover{border-color:var(--border);background:#fff;transform:none;}
+.ic-emoji{width:28px;height:28px;margin:0 auto;}
+.ic-name{font-size:9px;color:var(--muted);margin-top:3px;}
+.ic-count{position:absolute;top:-6px;right:-6px;background:var(--text);color:#fff;font-size:9px;font-weight:700;
+  min-width:16px;height:16px;border-radius:200px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+.ic-pref{position:absolute;top:-6px;left:-6px;font-size:12px;}
+
+/* treasures */
+.treasure-row{display:flex;flex-wrap:wrap;gap:5px;}
+.treasure{position:relative;background:var(--cream);border-radius:10px;padding:5px;}
+.tdood{display:inline-block;width:28px;height:28px;}
+.treasure .tc{position:absolute;bottom:-3px;right:-3px;background:var(--green);color:#fff;font-size:8px;font-weight:700;
+  min-width:14px;height:14px;border-radius:200px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+.treasure-empty{font-size:12px;color:var(--muted);font-style:italic;}
+
+/* ── QUESTS (characters send YOU on errands) ── */
+.quest-card{background:linear-gradient(180deg,#FFF7E6,#FFEFC9);border:1.5px solid #F0D9A0;border-radius:16px;padding:13px 14px;margin-bottom:8px;}
+.quest-card.deliver{background:linear-gradient(180deg,#E9F7EE,#D5F0DC);border-color:#9FD4AC;}
+.qc-head{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#9a7b1a;margin-bottom:5px;}
+.quest-card.deliver .qc-head{color:var(--green);}
+.qc-body{font-size:12.5px;color:var(--text);line-height:1.5;}
+.qc-body b{font-weight:700;}
+.qc-reward{display:inline-block;font-size:11px;font-weight:700;color:#caa024;margin-top:4px;}
+.qc-btn{margin-top:11px;width:100%;padding:10px;border-radius:200px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:13px;font-weight:700;color:#fff;background:#caa024;transition:filter .15s;
+  display:flex;align-items:center;justify-content:center;gap:6px;}
+.qc-btn:hover{filter:brightness(1.07);}
+.quest-card.deliver .qc-btn{background:var(--green);}
+.qc-btn.ghost{background:#fff;color:#9a7b1a;border:1.5px solid #F0D9A0;}
+
+/* overview quest list */
+#quests-panel{padding:8px 14px 2px;}
+.qp-title{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:7px;}
+.qp-badge{background:#caa024;color:#fff;font-size:10px;font-weight:700;border-radius:200px;padding:1px 7px;}
+.quest-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;cursor:pointer;
+  background:#FFF7E6;border:1px solid #F0D9A0;margin-bottom:5px;transition:background .15s;}
+.quest-row:hover{background:#FFEFC9;}
+.quest-row.deliver{background:#E9F7EE;border-color:#9FD4AC;}
+.quest-row.deliver:hover{background:#D5F0DC;}
+.qr-item{font-size:20px;flex-shrink:0;}
+.qr-info{flex:1;min-width:0;}
+.qr-title{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qr-step{font-size:11px;color:#9a7b1a;font-weight:600;}
+.quest-row.deliver .qr-step{color:var(--green);}
+.qr-go{font-size:15px;color:#caa024;flex-shrink:0;}
+
+/* quest badge on map */
+.ch-task{position:absolute;top:-8px;left:-8px;font-size:14px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));}
+@keyframes questBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+.ch-task:not(:empty){animation:questBob 1s ease-in-out infinite;}
+
+/* ── SHOP MODAL ── */
+#shop-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;z-index:999;}
+#shop-modal.hidden{display:none;}
+.shop-box{background:var(--cream);border-radius:var(--radius);padding:24px;width:420px;max-height:88vh;overflow-y:auto;}
+.shop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.shop-title{font-family:var(--serif);font-style:italic;font-size:26px;color:var(--text);letter-spacing:-.02em;}
+.shop-coins{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:#9a7b1a;
+  background:linear-gradient(180deg,#FFF6C8,#FFE9A0);padding:6px 13px;border-radius:200px;}
+.shop-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.shop-item{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px;display:flex;align-items:center;gap:11px;}
+.shop-item .si-emoji{width:38px;height:38px;flex-shrink:0;}
+.si-info{flex:1;min-width:0;}
+.si-name{font-size:13px;font-weight:600;}
+.si-own{font-size:11px;color:var(--muted);}
+.si-buy{padding:7px 11px;border-radius:200px;border:none;background:var(--green);color:#fff;font-family:var(--font);
+  font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.si-buy:hover{background:#1e5c3a;}
+.si-buy:disabled{background:rgba(0,0,0,.12);color:rgba(0,0,0,.35);cursor:not-allowed;}
+.shop-close{margin-top:18px;width:100%;padding:11px;border-radius:200px;border:1px solid var(--border);
+  background:#fff;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;}
+.shop-close:hover{background:rgba(0,0,0,.05);}
+</style>
+</head>
+<body>
+
+<nav id="topbar">
+  <div class="tb-logo">🗺️ Neighborhood Map</div>
+  <div id="tb-clock">
+    <span class="daynight" id="daynight">☀️</span>
+    <strong id="clock-date">Week 1 · Mon</strong>
+    <span id="clock-time">· 09:00</span>
+    <span class="week-progress"><span class="week-fill" id="week-fill"></span></span>
+  </div>
+  <div class="tb-controls">
+    <button class="tb-btn" id="btn-lang" title="Taal / Language">🌐 NL</button>
+    <div id="coin-pill"><span class="coin-ico">🪙</span><span id="coin-count">30</span></div>
+    <button class="tb-btn" id="btn-shop">🎒 Shop</button>
+    <button class="tb-btn" id="btn-playpause">▶</button>
+    <div id="speed-btns">
+      <button class="tb-btn active" data-speed="0">1×</button>
+      <button class="tb-btn" data-speed="1">4×</button>
+      <button class="tb-btn" data-speed="2">12×</button>
+      <button class="tb-btn" data-speed="3">40×</button>
+    </div>
+  </div>
+</nav>
+
+<div id="app">
+  <!-- MAP -->
+  <div id="map-area">
+    <div class="map-header">
+      <div class="map-title">The Neighborhood</div>
+      <div class="label-tag" id="map-sub">8 residents wandering about</div>
+    </div>
+    <div id="map-wrap">
+      <!-- features, plots & characters injected here -->
+    </div>
+    <div id="legend">
+      <div class="legend-item"><span class="legend-dot">🏃</span> roams a lot</div>
+      <div class="legend-item"><span class="legend-dot">🚶</span> wanders nearby</div>
+      <div class="legend-item"><span class="legend-dot">🏡</span> homebody</div>
+      <div class="legend-item"><span class="legend-dot">💤</span> sleeps at night</div>
+      <div class="legend-spacer"></div>
+      <div class="legend-hint">Click a character to see their story →</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="panel">
+      <!-- OVERVIEW -->
+      <div id="overview">
+        <div class="ov-head">
+          <div class="sb-title">The neighborhood</div>
+          <div class="ov-sub" id="ov-sub">Everyone's settling in.</div>
+        </div>
+        <div id="quests-panel" style="display:none">
+          <div class="qp-title"><span id="qp-label">Errands for you</span> <span class="qp-badge" id="qp-count">0</span></div>
+          <div id="quests-list"></div>
+        </div>
+        <div class="roster" id="roster"></div>
+        <div id="ov-log-head">Neighborhood log</div>
+        <div id="ov-log"></div>
+      </div>
+
+      <!-- CHARACTER DETAIL -->
+      <div id="detail">
+        <div class="dt-top">
+          <button class="dt-back" id="dt-back">← Back to map</button>
+          <div class="dt-hero">
+            <div class="dt-emoji" id="dt-emoji">🐉</div>
+            <div class="dt-id">
+              <div class="dt-name" id="dt-name">—</div>
+              <div class="dt-type" id="dt-type">—</div>
+              <div class="dt-pers" id="dt-pers">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="dt-scroll">
+          <div class="dt-section">
+            <div class="dt-sec-title">Right now</div>
+            <div class="dt-status" id="dt-status">—</div>
+            <div class="h-row">
+              <div class="h-bar"><div class="h-fill" id="dt-hfill"></div></div>
+              <div class="h-pct" id="dt-hpct">—</div>
+            </div>
+          </div>
+
+          <div class="dt-section" id="dt-quest-sec" style="display:none">
+            <div class="dt-sec-title">Errand</div>
+            <div id="dt-quest"></div>
+          </div>
+
+          <div class="dt-section">
+            <div class="dt-sec-title">Who they are</div>
+            <div class="dt-bio" id="dt-bio">—</div>
+            <div class="dt-traits" id="dt-traits"></div>
+          </div>
+
+          <div class="dt-section">
+            <div class="dt-sec-title">Decisions they can make</div>
+            <div class="dec-list" id="dt-decisions"></div>
+            <div class="dec-hint" id="dt-dec-hint"></div>
+          </div>
+
+          <div class="dt-section">
+            <div class="dt-sec-title">You can… <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· earns 🪙</span></div>
+            <div class="dt-actions">
+              <button class="dt-act primary" data-act="feed">🍎 Feed <span style="opacity:.8">+2</span></button>
+              <button class="dt-act" data-act="play">🎮 Play <span style="opacity:.6">+3</span></button>
+              <button class="dt-act" data-act="greet">👋 Greet <span style="opacity:.6">+1</span></button>
+              <button class="dt-act" data-act="follow">📍 Find</button>
+            </div>
+            <div class="dt-actions2" style="grid-template-columns:1fr">
+              <button class="dt-act gift" id="btn-give">🎁 Give a gift</button>
+            </div>
+
+            <!-- give tray -->
+            <div class="tray" id="give-tray">
+              <div class="tray-hint" id="give-hint">Pick a gift from your bag. 💚 = they'll love it (big reward).</div>
+              <div class="item-row" id="give-items"></div>
+            </div>
+          </div>
+
+          <div class="dt-section">
+            <div class="dt-sec-title">Treasures they've been given</div>
+            <div class="treasure-row" id="dt-treasures"></div>
+          </div>
+
+          <div class="dt-section">
+            <div class="dt-sec-title">Their whole history</div>
+            <div id="dt-history"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- SHOP MODAL -->
+<div id="shop-modal" class="hidden">
+  <div class="shop-box">
+    <div class="shop-head">
+      <div class="shop-title">The Corner Shop</div>
+      <div class="shop-coins">🪙 <span id="shop-coin-count">30</span></div>
+    </div>
+    <div class="shop-sub">Spend coins to stock your bag with gifts. Then hand them to characters — they love some more than others.</div>
+    <div class="shop-grid" id="shop-grid"></div>
+    <button class="shop-close" id="shop-close">Done</button>
+  </div>
+</div>
+
+<script src="doodles.js"></script>
+<script>
+// ─── LANGUAGE (i18n) ──────────────────────────────────────────────────
+let LANG = localStorage.getItem('nbhd-lang') || 'nl';   // default Dutch
+const T = () => STR[LANG];                               // active string table
+// character + item + POI drawings from the shared doodles.js (window.doodleSVG)
+const ITEM_CAT={flower:'flower',apple:'apple',cookie:'cookie',balloon:'ice cream',book:'book',toy:'teddy-bear',hat:'hat',gem:'diamond'};
+const POI_CAT={square:'bench',pond:'duck',park:'tree'};
+const CCOL=['#B7E4C7','#FFD6E8','#FFF570','#A3DAF5','#FFCBA4','#D9B8F5','#F5E6D3','#C8E6C9'];
+function idoo(k){return doodleSVG(ITEM_CAT[k]);}
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────
+const SPEEDS=[1,4,12,40];               // sim-hours per real second (1×)
+const DAYS_TXT={ en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+                 nl:['ma','di','wo','do','vr','za','zo'] };
+let DAYS = DAYS_TXT[LANG];
+
+// Points of interest — structural (coords/emoji) + per-language names
+const POI_BASE=[
+  {key:'square', x:50, y:48, r:9,  emoji:'⛲', cls:'feat-square'},
+  {key:'pond',   x:78, y:26, r:8,  emoji:'🦆', cls:'feat-pond'},
+  {key:'park',   x:22, y:74, r:10, emoji:'🌳', cls:'feat-park'},
+];
+const POI_NAME={ en:{square:'Town Square',pond:'The Pond',park:'The Park'},
+                 nl:{square:'Het Plein',pond:'De Vijver',park:'Het Park'} };
+let POI = POI_BASE.map(p=>({...p,name:POI_NAME[LANG][p.key]}));
+function poiName(key){ return POI_NAME[LANG][key]; }
+
+// Movement "styles" — structural + per-language descriptive word
+const STYLE_BASE={
+  explorer:{spd:7.0, roam:0.72, homeR:42, pause:[0.4,1.8], tag:'🏃'},
+  bouncer: {spd:9.0, roam:0.60, homeR:38, pause:[0.2,1.0], tag:'🏃'},
+  prowler: {spd:5.5, roam:0.50, homeR:30, pause:[1.0,3.0], tag:'🚶'},
+  stroller:{spd:4.2, roam:0.38, homeR:24, pause:[1.2,3.2], tag:'🚶'},
+  patroller:{spd:3.6,roam:0.20, homeR:13, pause:[2.0,4.5], tag:'🏡'},
+  ponderer:{spd:3.0, roam:0.24, homeR:11, pause:[3.0,6.0], tag:'🏡'},
+  homebody:{spd:3.4, roam:0.12, homeR:8,  pause:[3.5,7.0], tag:'🏡'},
+  drifter: {spd:2.2, roam:0.16, homeR:11, pause:[3.0,6.5], tag:'🏡'},
+};
+const STYLE_WORD={
+  en:{explorer:'roams the whole neighborhood',bouncer:'is always on the move',prowler:'prowls the back paths',stroller:'takes gentle strolls',patroller:'patrols close to home',ponderer:'mostly stays home, thinking',homebody:'rarely leaves the yard',drifter:'drifts slowly near home'},
+  nl:{explorer:'zwerft door de hele buurt',bouncer:'is altijd in beweging',prowler:'sluipt over de achterpaadjes',stroller:'maakt rustige wandelingen',patroller:'blijft dicht bij huis',ponderer:'blijft meestal thuis, peinzend',homebody:'komt zelden de tuin uit',drifter:'zweeft langzaam dicht bij huis'},
+};
+let STYLE; function buildStyle(){STYLE={};for(const k in STYLE_BASE)STYLE[k]={...STYLE_BASE[k],word:STYLE_WORD[LANG][k]};}
+buildStyle();
+
+// Personalities — structural (badge/decay/style/decision icons) + per-language text
+const P_STRUCT={
+  adventurous:{badge:'🗺️',decay:13,style:'explorer', ic:['🗺️','⛰️','🧭','🦆','🏡']},
+  wise:       {badge:'📚',decay:8, style:'ponderer', ic:['🧘','📜','⛲','💬','🌅']},
+  gentle:     {badge:'🌿',decay:10,style:'stroller', ic:['🌸','🌳','👋','🎁','😌']},
+  mischievous:{badge:'😈',decay:16,style:'prowler',  ic:['🗿','🎩','🌑','😼','😴']},
+  shy:        {badge:'🌱',decay:10,style:'homebody', ic:['🏡','🌿','🤏','💌','🙈']},
+  playful:    {badge:'🎉',decay:20,style:'bouncer',  ic:['🏃','🏆','⛲','🦋','😮‍💨']},
+  dreamy:     {badge:'🌙',decay:6, style:'drifter',  ic:['☁️','🌫️','🪨','✨','💤']},
+  grumpy:     {badge:'😤',decay:13,style:'patroller',ic:['🚧','🌧️','🔍','🙄','🛖']},
+};
+const P_TEXT={
+  en:{
+    adventurous:{label:'Adventurous',bio:'A born explorer who treats every fence as a dare. Comes home with rocks and calls them treasure.',traits:['Brave','Curious','Restless'],dec:['Go on a quest','Climb the tallest hill','Map the neighborhood','Explore the pond','Head home to rest'],says:['Onward!','Found a treasure!','New record!','To the pond!']},
+    wise:{label:'Wise',bio:'Patient and thoughtful. Writes scrolls nobody asked for and leaves them on doorsteps anyway.',traits:['Patient','Thoughtful','Calm'],dec:['Meditate at home','Write a scroll','Visit the town square','Give some advice','Watch the horizon'],says:['Hmm, indeed.','Patience…','A fine morning.','Wisdom takes time.']},
+    gentle:{label:'Gentle',bio:'Sweet and easygoing. Waters every flower in sight, including the ones that were perfectly fine.',traits:['Kind','Easygoing','Warm'],dec:['Water the flowers','Stroll to the park','Wave at a neighbor','Leave a small gift','Rest in the yard'],says:['Hello there!','Lovely day!','For you!','*happy moo*']},
+    mischievous:{label:'Mischievous',bio:'Up to something. Moves garden gnomes three inches to the left and denies all knowledge of it.',traits:['Sneaky','Playful','Clever'],dec:['Rearrange a gnome','Borrow something','Prowl the back paths','Plot a little prank','Lay low at home'],says:['Heh heh…',"Wasn't me.",'Borrowing this.','*whistles*']},
+    shy:{label:'Shy',bio:'Curious but bashful. Watches neighbors from behind a bush, waves when noticed, then hides again.',traits:['Bashful','Sweet','Careful'],dec:['Stay in the yard','Peek from a bush','Tiptoe to a neighbor','Leave an unsigned note','Hide for a while'],says:['…hi.','*waves shyly*','Oh! Um…','*hides*']},
+    playful:{label:'Playful',bio:'Pure energy. Ran 47 laps before breakfast and is already challenging someone to a rematch.',traits:['Energetic','Bouncy','Bold'],dec:['Run laps','Challenge a neighbor','Bounce round the square','Chase a butterfly','Catch a breath'],says:['Wheee!','Race you!','Again! Again!','Best of seven!']},
+    dreamy:{label:'Dreamy',bio:'Head in the clouds, literally. Found seven clouds today that looked like other clouds.',traits:['Daydreamer','Soft','Quiet'],dec:['Watch the clouds','Drift slowly','Arrange pebbles','Stargaze','Take a nap'],says:['Oooh, pretty…','Floaty…','Look, a cloud.','Zzz…']},
+    grumpy:{label:'Grumpy',bio:'Grumpy but secretly soft. Complained about the lovely weather and rearranged a rock collection in protest.',traits:['Cranky','Loyal','Particular'],dec:['Patrol the fence','Complain about weather','Inspect the yard','Tut at a neighbor','Sulk indoors'],says:['Hmph.','Typical.','Not impressed.','Bah.']},
+  },
+  nl:{
+    adventurous:{label:'Avontuurlijk',bio:'Een geboren ontdekkingsreiziger die elk hek als een uitdaging ziet. Komt thuis met stenen en noemt ze schatten.',traits:['Dapper','Nieuwsgierig','Rusteloos'],dec:['Op queeste gaan','De hoogste heuvel beklimmen','De buurt in kaart brengen','De vijver verkennen','Naar huis om uit te rusten'],says:['Voorwaarts!','Schat gevonden!','Nieuw record!','Naar de vijver!']},
+    wise:{label:'Wijs',bio:'Geduldig en bedachtzaam. Schrijft perkamenten die niemand vroeg en legt ze toch op de stoep.',traits:['Geduldig','Bedachtzaam','Kalm'],dec:['Thuis mediteren','Een perkament schrijven','Het plein bezoeken','Advies geven','De horizon bekijken'],says:['Hmm, inderdaad.','Geduld…','Een mooie ochtend.','Wijsheid kost tijd.']},
+    gentle:{label:'Zachtaardig',bio:'Lief en makkelijk in de omgang. Geeft elke bloem in zicht water, ook die het prima deden.',traits:['Vriendelijk','Ontspannen','Warm'],dec:['De bloemen water geven','Naar het park wandelen','Naar een buur zwaaien','Een klein cadeau achterlaten','Uitrusten in de tuin'],says:['Hallo daar!','Heerlijke dag!','Voor jou!','*blij geboe*']},
+    mischievous:{label:'Ondeugend',bio:'Heeft iets in de zin. Verschuift tuinkabouters drie centimeter naar links en ontkent alles.',traits:['Stiekem','Speels','Slim'],dec:['Een kabouter verzetten','Iets lenen','Door de achterpaadjes sluipen','Een grapje uithalen','Thuis koest blijven'],says:['Hehe…','Was ik niet.','Even lenen.','*fluit*']},
+    shy:{label:'Verlegen',bio:'Nieuwsgierig maar verlegen. Bekijkt buren vanachter een struik, zwaait als ze gezien wordt en verstopt zich weer.',traits:['Verlegen','Lief','Voorzichtig'],dec:['In de tuin blijven','Vanachter een struik gluren','Naar een buur sluipen','Een anoniem briefje achterlaten','Zich even verstoppen'],says:['…hoi.','*zwaait verlegen*','Oh! Eh…','*verstopt zich*']},
+    playful:{label:'Speels',bio:'Pure energie. Rende 47 rondjes voor het ontbijt en daagt nu al iemand uit voor een rematch.',traits:['Energiek','Stuiterend','Gedurfd'],dec:['Rondjes rennen','Een buur uitdagen','Rond het plein stuiteren','Een vlinder achterna','Even op adem komen'],says:['Joepie!','Wie het eerst!','Nog een keer!','Best of seven!']},
+    dreamy:{label:'Dromerig',bio:'Met het hoofd in de wolken, letterlijk. Vond vandaag zeven wolken die op andere wolken leken.',traits:['Dagdromer','Zacht','Stil'],dec:['Wolken kijken','Langzaam zweven','Steentjes ordenen','Sterren kijken','Een dutje doen'],says:['Oooh, mooi…','Zweverig…','Kijk, een wolk.','Zzz…']},
+    grumpy:{label:'Chagrijnig',bio:'Chagrijnig maar stiekem zacht. Klaagde over het mooie weer en herschikte uit protest een stenenverzameling.',traits:['Knorrig','Trouw','Eigenwijs'],dec:['Het hek patrouilleren','Klagen over het weer','De tuin inspecteren','Naar een buur tutten','Binnen mokken'],says:['Hmpf.','Typisch.','Niet onder de indruk.','Bah.']},
+  },
+};
+let P; function buildP(){P={};for(const k in P_STRUCT){const s=P_STRUCT[k],t=P_TEXT[LANG][k];
+  P[k]={badge:s.badge,decay:s.decay,style:s.style,label:t.label,bio:t.bio,traits:t.traits,says:t.says,
+        decisions:s.ic.map((i,idx)=>({i,t:t.dec[idx]}))};}}
+buildP();
+
+const WEATHER_TXT={
+  en:['🌧 It started to rain across the neighborhood.','☀️ A bright, sunny morning.','🌈 A rainbow stretched over the pond.','🌬️ A warm breeze rolled through.','❄️ Light snow began to fall.'],
+  nl:['🌧 Het begon te regenen in de buurt.','☀️ Een heldere, zonnige ochtend.','🌈 Een regenboog spande zich over de vijver.','🌬️ Een warme bries trok voorbij.','❄️ Er begon lichte sneeuw te vallen.'],
+};
+let WEATHER = WEATHER_TXT[LANG];
+
+// ─── ITEMS, GIFTS & ECONOMY ───────────────────────────────────────────
+const ITEM_BASE={
+  flower:{emoji:'🌻',cost:4}, apple:{emoji:'🍎',cost:4}, cookie:{emoji:'🍪',cost:5}, balloon:{emoji:'🍦',cost:6},
+  book:{emoji:'📖',cost:6}, toy:{emoji:'🧸',cost:7}, hat:{emoji:'🎩',cost:8}, gem:{emoji:'💎',cost:12},
+};
+const ITEM_NAME={
+  en:{flower:'Flower',apple:'Apple',cookie:'Cookie',balloon:'Ice cream',book:'Book',toy:'Teddy',hat:'Hat',gem:'Gem'},
+  nl:{flower:'Bloem',apple:'Appel',cookie:'Koekje',balloon:'IJsje',book:'Boek',toy:'Knuffel',hat:'Hoed',gem:'Edelsteen'},
+};
+let ITEMS; function buildItems(){ITEMS={};for(const k in ITEM_BASE)ITEMS[k]={...ITEM_BASE[k],name:ITEM_NAME[LANG][k]};}
+buildItems();
+// character drawing types (English value → Dutch)
+const TYPE_TXT={nl:{Dragon:'Draak',Owl:'Uil',Cow:'Koe',Monkey:'Aap',Mermaid:'Zeemeermin',Rabbit:'Konijn',Cloud:'Wolk',Cactus:'Cactus'}};
+function typeName(t){ return (LANG==='nl' && TYPE_TXT.nl[t]) || t; }
+const ITEM_KEYS=Object.keys(ITEM_BASE);
+// what each personality loves / likes (everything else is neutral)
+const PREF={
+  adventurous:{loves:['gem'],        likes:['hat','book']},
+  wise:       {loves:['book'],       likes:['gem']},
+  gentle:     {loves:['flower'],     likes:['cookie','apple']},
+  mischievous:{loves:['hat'],        likes:['toy','balloon']},
+  shy:        {loves:['flower'],     likes:['book']},
+  playful:    {loves:['balloon','toy'],likes:['cookie']},
+  dreamy:     {loves:['balloon'],    likes:['flower','gem']},
+  grumpy:     {loves:['cookie'],     likes:['apple']},
+};
+function prefOf(pers,itemKey){
+  const p=PREF[pers]; if(p.loves.includes(itemKey))return 'love'; if(p.likes.includes(itemKey))return 'like'; return 'neutral';
+}
+const GIFT_BASE={love:{h:28,coins:12,react:'💖'}, like:{h:16,coins:6,react:'😊'}, neutral:{h:8,coins:2,react:'🙂'}};
+const GIFT_WORD={ en:{love:'absolutely adored',like:'really liked',neutral:'accepted'},
+                  nl:{love:'helemaal geweldig vond',like:'erg leuk vond',neutral:'aannam'} };
+let GIFT_FX; function buildGiftFx(){GIFT_FX={};for(const k in GIFT_BASE)GIFT_FX[k]={...GIFT_BASE[k],word:GIFT_WORD[LANG][k]};}
+buildGiftFx();
+
+// ─── STRING TABLE (UI + dynamic templates) ────────────────────────────
+const STR={
+  en:{
+    logo:'🗺️ Neighborhood Map', shop:'🎒 Shop', mapTitle:'The Neighborhood', yardLabel:(n)=>`${n}'s yard`,
+    legendRoam:'roams a lot', legendNear:'wanders nearby', legendHome:'homebody', legendSleep:'sleeps at night',
+    legendHint:'Click a character to see their story →',
+    ovTitle:'The neighborhood', errandsForYou:'Errands for you', logHead:'Neighborhood log',
+    back:'← Back to map', tNow:'Right now', tErrand:'Errand', tWho:'Who they are', tDec:'Decisions they can make',
+    tYouCan:'You can…', earns:'· earns 🪙', tTreasures:"Treasures they've been given", tHistory:'Their whole history', nowTag:'now',
+    feed:'Feed', play:'Play', greet:'Greet', find:'Find', give:'🎁 Give a gift',
+    giveHint:"Pick a gift from your bag. 💚 = they'll love it (big reward).",
+    shopTitle:'The Corner Shop', shopSub:'Spend coins to stock your bag with gifts. Then hand them to characters — they love some more than others.',
+    shopOwn:'In bag: ', shopDone:'Done',
+    weekDow:(w,d)=>`Week ${w} · ${d}`,
+    decidedTo:(dec,where)=>`decided to <b>${dec}</b> — ${where}.`, headHomeNight:'headed home as night fell.',
+    headHomeSleep:'Head home to sleep',
+    whereWander:'set off across the neighborhood', whereYard:'pottered about the yard', whereNearby:'wandered nearby',
+    whereToward:(n)=>'headed toward '+n,
+    sAsleep:'💤 Fast asleep at home.', sWalking:(w,d)=>`🚶 Walking toward <b>${w}</b> — ${d}.`,
+    sPausing:'🧍 Pausing for a moment, deciding what to do next.', wandering:'wandering',
+    placeHome:'home', placeYard:'their yard', placeNearby:'somewhere nearby', placeWander:'across the neighborhood',
+    rWaitDeliver:'🎁 waiting for their delivery', rNeedFavor:'❗ needs a favor from you',
+    rAsleep:'💤 asleep', rPausing:'🧍 pausing', rOnMove:'on the move',
+    allAsleep:'Everyone is fast asleep.', ovSub:(m,a,p)=>`${m} out walking · ${a} asleep · ${p} pausing`,
+    msNight:(a)=>`Quiet night · ${a} asleep`, msDay:(n)=>`${n} residents wandering about`,
+    dType:(type,word)=>`${type} · ${word}`,
+    decHint:(name,label)=>`${name} picks one of these on their own every time they finish what they're doing — biased by being ${label}.`,
+    histEmpty:'Nothing has happened yet. Press ▶ to start the day.',
+    treasureEmpty:"No gifts yet — give them something they'll love.",
+    sayHelp:'Could you help?', sayTake:'Here, take it!', sayThanks:'Thank you so much!', sayHere:'Over here!',
+    sayLove:'I love it!!', sayLike:'Thank you!', sayMeh:'Oh, thanks.',
+    qAsk:(item,src)=>`asked you to bring them a ${item} — ${src} has one.`,
+    qAskG:(emoji,src)=>`asks a favour: bring them a ${emoji}? <b>${src}</b> has one.`,
+    qGave:(item,req)=>`gave you a ${item} to take to ${req}.`,
+    qPickG:(emoji,sE,sN,req)=>`You picked up a ${emoji} from <span class="cn">${sE} ${sN}</span> for ${req}.`,
+    qGot:(item,rw)=>`got their ${item}! You ran their errand. +${rw} coins.`,
+    qDelG:(emoji,rE,rN,rw)=>`You delivered a ${emoji} to <span class="cn">${rE} ${rN}</span> — errand done! <b>+${rw}🪙</b>`,
+    gGiven:(item,word,c)=>`was given a ${item} and ${word} it. (+${c}🪙)`,
+    gGaveG:(emoji,name,iE,word,c)=>`You gave <span class="cn">${emoji} ${name}</span> a ${iE} — they ${word} it! <b>+${c}🪙</b>`,
+    cFed:'was fed and did a happy little wiggle.', cPlay:'played a game with you. Happiness up!', cGreet:'greeted you back warmly.',
+    cCaredG:(emoji,name,c)=>`You cared for <span class="cn">${emoji} ${name}</span>. <b>+${c}🪙</b>`,
+    qcSrcHead:(n)=>`📦 ${n} has something for you`,
+    qcSrcBody:(rE,rN,iE,item,n)=>`<b>${rE} ${rN}</b> asked for a ${iE} ${item}. Grab it here, then take it to ${rN}.`,
+    qcSrcBtn:(item)=>`📦 Collect the ${item}`,
+    qcReqHead:(n)=>`💭 ${n} asked you a favour`,
+    qcReqBody:(iE,item,sE,sN,rw)=>`They'd love a ${iE} ${item}. <b>${sE} ${sN}</b> has one — collect it from them, then come back. <span class="qc-reward">Reward · +${rw}🪙</span>`,
+    qcReqBtn:(n)=>`→ Go to ${n}`,
+    qcDelHead:'🎁 Ready to deliver!',
+    qcDelBody:(iE,item,n,rw)=>`You're carrying a ${iE} ${item} for ${n}. Hand it over! <span class="qc-reward">Reward · +${rw}🪙</span>`,
+    qcDelBtn:(n)=>`🎁 Give it to ${n}`,
+    qrTitle:(rE,rN,item)=>`${rE} ${rN} wants a ${item}`,
+    qrCollect:(iE,sN)=>`① Collect ${iE} from ${sN}`, qrDeliver:(iE,rN)=>`② Deliver ${iE} to ${rN}`,
+    initReady:'🏡 The neighborhood is ready. Press <strong>▶</strong> to watch everyone come to life.',
+    initTip:'💡 Tip: characters will ask you for favours ❗ — collect the item from one neighbor 📦 and deliver it for 🪙.',
+  },
+  nl:{
+    logo:'🗺️ Buurtkaart', shop:'🎒 Winkel', mapTitle:'De Buurt', yardLabel:(n)=>`tuin van ${n}`,
+    legendRoam:'zwerft veel', legendNear:'wandelt rondom', legendHome:'thuisblijver', legendSleep:"slaapt 's nachts",
+    legendHint:'Klik op een personage voor zijn verhaal →',
+    ovTitle:'De buurt', errandsForYou:'Klusjes voor jou', logHead:'Buurtlogboek',
+    back:'← Terug naar kaart', tNow:'Nu', tErrand:'Klusje', tWho:'Wie ze zijn', tDec:'Beslissingen die ze kunnen nemen',
+    tYouCan:'Jij kunt…', earns:'· levert 🪙 op', tTreasures:'Cadeaus die ze hebben gekregen', tHistory:'Hun hele geschiedenis', nowTag:'nu',
+    feed:'Voeren', play:'Spelen', greet:'Groeten', find:'Vinden', give:'🎁 Geef een cadeau',
+    giveHint:'Kies een cadeau uit je tas. 💚 = ze vinden het geweldig (grote beloning).',
+    shopTitle:'De Buurtwinkel', shopSub:'Geef munten uit om je tas met cadeaus te vullen. Geef ze daarna aan personages — ze houden van het ene meer dan het andere.',
+    shopOwn:'In tas: ', shopDone:'Klaar',
+    weekDow:(w,d)=>`Week ${w} · ${d}`,
+    decidedTo:(dec,where)=>`besloot om <b>${dec}</b> — ${where}.`, headHomeNight:'ging naar huis toen de avond viel.',
+    headHomeSleep:'Naar huis om te slapen',
+    whereWander:'vertrok de buurt in', whereYard:'scharrelde wat in de tuin', whereNearby:'wandelde in de buurt',
+    whereToward:(n)=>'ging richting '+n,
+    sAsleep:'💤 Diep in slaap thuis.', sWalking:(w,d)=>`🚶 Onderweg naar <b>${w}</b> — ${d}.`,
+    sPausing:'🧍 Even pauze, bedenkt wat te gaan doen.', wandering:'aan het rondzwerven',
+    placeHome:'huis', placeYard:'hun tuin', placeNearby:'ergens dichtbij', placeWander:'de buurt door',
+    rWaitDeliver:'🎁 wacht op de bezorging', rNeedFavor:'❗ heeft een gunst nodig',
+    rAsleep:'💤 slaapt', rPausing:'🧍 pauzeert', rOnMove:'onderweg',
+    allAsleep:'Iedereen slaapt diep.', ovSub:(m,a,p)=>`${m} op pad · ${a} slapen · ${p} pauzeren`,
+    msNight:(a)=>`Rustige nacht · ${a} slapen`, msDay:(n)=>`${n} bewoners zwerven rond`,
+    dType:(type,word)=>`${type} · ${word}`,
+    decHint:(name,label)=>`${name} kiest er zelf telkens één zodra ze klaar zijn met wat ze doen — beïnvloed door ${label} te zijn.`,
+    histEmpty:'Er is nog niets gebeurd. Druk op ▶ om de dag te starten.',
+    treasureEmpty:'Nog geen cadeaus — geef ze iets wat ze geweldig vinden.',
+    sayHelp:'Kun je helpen?', sayTake:'Hier, pak aan!', sayThanks:'Heel erg bedankt!', sayHere:'Hier!',
+    sayLove:'Ik vind het geweldig!!', sayLike:'Dank je wel!', sayMeh:'Oh, bedankt.',
+    qAsk:(item,src)=>`vroeg je om een ${item} te halen — ${src} heeft er een.`,
+    qAskG:(emoji,src)=>`vraagt een gunst: breng ze een ${emoji}? <b>${src}</b> heeft er een.`,
+    qGave:(item,req)=>`gaf je een ${item} om naar ${req} te brengen.`,
+    qPickG:(emoji,sE,sN,req)=>`Je pakte een ${emoji} op bij <span class="cn">${sE} ${sN}</span> voor ${req}.`,
+    qGot:(item,rw)=>`kreeg hun ${item}! Je hebt het klusje gedaan. +${rw} munten.`,
+    qDelG:(emoji,rE,rN,rw)=>`Je bezorgde een ${emoji} aan <span class="cn">${rE} ${rN}</span> — klusje klaar! <b>+${rw}🪙</b>`,
+    gGiven:(item,word,c)=>`kreeg een ${item} en ${word} het. (+${c}🪙)`,
+    gGaveG:(emoji,name,iE,word,c)=>`Je gaf <span class="cn">${emoji} ${name}</span> een ${iE} — ze ${word} het! <b>+${c}🪙</b>`,
+    cFed:'werd gevoerd en deed een blij wiebeldansje.', cPlay:'speelde een spelletje met je. Blijer!', cGreet:'groette je hartelijk terug.',
+    cCaredG:(emoji,name,c)=>`Je verzorgde <span class="cn">${emoji} ${name}</span>. <b>+${c}🪙</b>`,
+    qcSrcHead:(n)=>`📦 ${n} heeft iets voor je`,
+    qcSrcBody:(rE,rN,iE,item,n)=>`<b>${rE} ${rN}</b> vroeg om een ${iE} ${item}. Pak het hier op en breng het naar ${rN}.`,
+    qcSrcBtn:(item)=>`📦 Pak de ${item} op`,
+    qcReqHead:(n)=>`💭 ${n} vroeg je een gunst`,
+    qcReqBody:(iE,item,sE,sN,rw)=>`Ze zouden dolblij zijn met een ${iE} ${item}. <b>${sE} ${sN}</b> heeft er een — haal het bij ze op en kom terug. <span class="qc-reward">Beloning · +${rw}🪙</span>`,
+    qcReqBtn:(n)=>`→ Ga naar ${n}`,
+    qcDelHead:'🎁 Klaar om te bezorgen!',
+    qcDelBody:(iE,item,n,rw)=>`Je draagt een ${iE} ${item} voor ${n}. Geef het af! <span class="qc-reward">Beloning · +${rw}🪙</span>`,
+    qcDelBtn:(n)=>`🎁 Geef het aan ${n}`,
+    qrTitle:(rE,rN,item)=>`${rE} ${rN} wil een ${item}`,
+    qrCollect:(iE,sN)=>`① Haal ${iE} bij ${sN}`, qrDeliver:(iE,rN)=>`② Breng ${iE} naar ${rN}`,
+    initReady:'🏡 De buurt is klaar. Druk op <strong>▶</strong> om iedereen tot leven te zien komen.',
+    initTip:'💡 Tip: personages vragen je om gunsten ❗ — haal het voorwerp bij één buur 📦 en bezorg het voor 🪙.',
+  },
+};
+
+// player wallet + bag
+let coins=30;
+let bag={flower:3,apple:3,cookie:2,balloon:2,book:2,toy:1,hat:1,gem:0};
+function bagTotal(){return Object.values(bag).reduce((a,b)=>a+b,0);}
+
+// errands the characters give the player. quest = {id, requesterId, sourceId, itemKey, reward, stage:'collect'|'deliver'}
+let quests=[], questSeq=1;
+
+// ─── INITIAL RESIDENTS ────────────────────────────────────────────────
+// homes are spread around the map, away from the POIs
+const HOMES=[ [20,22],[40,18],[62,16],[84,46],[14,48],[36,40],[66,64],[50,82] ];
+let chars=[
+  {name:'Flamble', type:'Dragon',  cat:'dragon', pers:'adventurous',emoji:'🐉',h:95},
+  {name:'Old Murp',type:'Owl',     cat:'owl',    pers:'wise',       emoji:'🦉',h:88},
+  {name:'Bessie',  type:'Cow',     cat:'cow',    pers:'gentle',     emoji:'🐮',h:83},
+  {name:'Mojo',    type:'Monkey',  cat:'monkey', pers:'mischievous',emoji:'🐵',h:71},
+  {name:'Pip',     type:'Mermaid', cat:'mermaid',pers:'shy',        emoji:'🧜',h:91},
+  {name:'Hop',     type:'Rabbit',  cat:'rabbit', pers:'playful',    emoji:'🐰',h:59},
+  {name:'Floaty',  type:'Cloud',   cat:'cloud',  pers:'dreamy',     emoji:'☁️',h:99},
+  {name:'Gerald',  type:'Cactus',  cat:'cactus', pers:'grumpy',     emoji:'🌵',h:53},
+].map((c,i)=>{
+  const [hx,hy]=HOMES[i];
+  return {...c,id:i+1,color:CCOL[i],home:{x:hx,y:hy},x:hx,y:hy,tx:hx,ty:hy,
+    state:'idle',pauseLeft:1+Math.random()*2,decisionIdx:null,dest:null,history:[],sayT:0,
+    treasures:{}};
+});
+
+// ─── STATE ────────────────────────────────────────────────────────────
+let simHour=9,simDay=1,running=false,speedIdx=0,lastTs=null;
+let nextWeatherIn=20+Math.random()*30, selectedId=null;
+const wrap=document.getElementById('map-wrap');
+
+function isNight(){return simHour>=20||simHour<7;}
+function rnd(a,b){return a+Math.random()*(b-a);}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+
+// ─── BUILD STATIC MAP (features, paths, plots) ────────────────────────
+function buildMap(){
+  // paths: simple SVG lines connecting square to POIs and a ring road
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.id='map-svg';svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');
+  const paths=[[50,48,78,26],[50,48,22,74],[50,48,50,82],[50,48,84,46],[50,48,14,48],
+               [50,48,40,18],[50,48,62,16],[50,48,20,22],[50,48,66,64],[50,48,36,40]];
+  paths.forEach(([x1,y1,x2,y2])=>{
+    const l=document.createElementNS(svgNS,'line');
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+    l.setAttribute('stroke','rgba(231,221,201,0.85)');l.setAttribute('stroke-width','2.4');l.setAttribute('stroke-linecap','round');
+    svg.appendChild(l);
+  });
+  wrap.appendChild(svg);
+
+  // POI features
+  POI.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='feat '+p.cls;
+    d.style.left=p.x+'%';d.style.top=p.y+'%';
+    d.style.width=(p.r*2)+'%';d.style.height=(p.r*2*0.78)+'%';
+    d.innerHTML=`<span class="feat-emoji">${doodleSVG(POI_CAT[p.key])}</span><span class="feat-label">${p.name}</span>`;
+    wrap.appendChild(d);
+  });
+
+  // plots (homes)
+  chars.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='plot';d.dataset.plot=c.id;
+    d.style.left=c.home.x+'%';d.style.top=c.home.y+'%';
+    d.innerHTML=`<span class="plot-house">${doodleSVG('house')}</span><span class="plot-label">${T().yardLabel(c.name)}</span>`;
+    wrap.appendChild(d);
+  });
+
+  // characters
+  chars.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='ch';el.dataset.id=c.id;
+    el.innerHTML=`<div class="ch-ring"></div>
+      <div class="ch-say" id="say-${c.id}"></div>
+      <div class="ch-emoji" style="position:relative;--c:${c.color}">${doodleSVG(c.cat)}<span class="ch-mood" id="mood-${c.id}"></span><span class="ch-task" id="task-${c.id}"></span></div>
+      <div class="ch-name">${c.name}</div>`;
+    el.style.left=c.x+'%';el.style.top=c.y+'%';
+    el.addEventListener('click',()=>selectChar(c.id));
+    wrap.appendChild(el);
+    c.el=el;
+  });
+}
+
+// ─── MOVEMENT / AI DECISIONS ──────────────────────────────────────────
+function chooseDestination(c){
+  const st=STYLE[P[c.pers].style];
+  // Night: go home and sleep
+  if(isNight()){
+    return {x:c.home.x,y:c.home.y,place:'home',sleep:true};
+  }
+  // long trip to a POI / across the map?
+  if(Math.random()<st.roam){
+    if(Math.random()<0.6){
+      const poi=pick(POI);
+      return {x:poi.x+rnd(-4,4),y:poi.y+rnd(-4,4),place:poi.key};
+    }
+    return {x:rnd(8,92),y:rnd(8,92),place:'wander'};
+  }
+  // otherwise: wander within homeR of home
+  const ang=Math.random()*Math.PI*2, dist=rnd(0,st.homeR);
+  let nx=c.home.x+Math.cos(ang)*dist, ny=c.home.y+Math.sin(ang)*dist;
+  nx=Math.max(6,Math.min(94,nx));ny=Math.max(6,Math.min(94,ny));
+  const near=nx<c.home.x+9&&nx>c.home.x-9&&ny<c.home.y+9&&ny>c.home.y-9;
+  return {x:nx,y:ny,place:near?'yard':'nearby'};
+}
+
+// resolve a character's current decision object (re-localizes after a language switch)
+function curDec(c){
+  if(c.decisionIdx==null) return null;
+  if(c.decisionIdx<0) return {i:'💤', t:T().headHomeSleep};
+  return P[c.pers].decisions[c.decisionIdx];
+}
+function newDecision(c){
+  const def=P[c.pers];
+  const dest=chooseDestination(c);
+  c.dest=dest;
+  c.tx=dest.x;c.ty=dest.y;
+  c.state='moving';
+  if(dest.sleep){
+    c.decisionIdx=-1;                       // special "sleep" decision
+    log(c,'💤',T().headHomeNight);
+    return;
+  }
+  // pick a decision biased by where they're going (home/yard → one of the last two)
+  const n=def.decisions.length;
+  const idx = (dest.place==='home'||dest.place==='yard')
+    ? n-2+(Math.random()<0.5?0:1)
+    : Math.floor(Math.random()*n);
+  c.decisionIdx=idx;
+  const dec=def.decisions[idx];
+  const where = dest.place==='wander'?T().whereWander:
+                dest.place==='yard'?T().whereYard:
+                dest.place==='nearby'?T().whereNearby:
+                T().whereToward(poiName(dest.place));
+  log(c,dec.i,T().decidedTo(dec.t.toLowerCase(),where));
+}
+
+function arrive(c){
+  c.state='idle';
+  const st=STYLE[P[c.pers].style];
+  if(c.dest&&c.dest.sleep){
+    c.state='asleep';
+    c.pauseLeft=999;            // stays until morning
+  }else{
+    c.pauseLeft=rnd(st.pause[0],st.pause[1]);
+    if(Math.random()<0.5) say(c,pick(P[c.pers].says));
+    if(Math.random()<0.08){ earn(1,c); react(c,'🪙'); }   // ambient coin drip
+    maybeNewQuest(c);                                      // might ask YOU for a favor
+  }
+}
+
+function stepSim(dtH){
+  simHour+=dtH;
+  while(simHour>=24){simHour-=24;simDay++;}
+  const night=isNight();
+
+  chars.forEach(c=>{
+    // wake up in the morning
+    if(c.state==='asleep'&&!night){c.state='idle';c.pauseLeft=0;}
+    if(c.state==='idle'){
+      c.pauseLeft-=dtH;
+      if(c.pauseLeft<=0) newDecision(c);
+    }
+    if(c.state==='moving'){
+      const st=STYLE[P[c.pers].style];
+      const sp=st.spd*dtH*1.1;          // distance this step (% of map)
+      const dx=c.tx-c.x, dy=c.ty-c.y, d=Math.hypot(dx,dy);
+      if(d<=sp){c.x=c.tx;c.y=c.ty;arrive(c);}
+      else{c.x+=dx/d*sp;c.y+=dy/d*sp;}
+    }
+    // happiness decay (only awake daytime), gentle
+    if(!night && c.state!=='asleep'){
+      c.h=Math.max(0,c.h-P[c.pers].decay*(dtH/24));
+    }
+    // speech bubble timer
+    if(c.sayT>0){c.sayT-=dtH; if(c.sayT<=0) document.getElementById('say-'+c.id)?.classList.remove('show');}
+  });
+
+  // weather
+  nextWeatherIn-=dtH;
+  if(nextWeatherIn<=0){ globalLog(pick(WEATHER),'weather'); nextWeatherIn=25+Math.random()*40; }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────
+function moodFor(c){
+  if(c.state==='asleep') return '💤';
+  if(c.h>=80) return '✨';
+  if(c.h>=55) return '';
+  if(c.h>=30) return '🥱';
+  return '😢';
+}
+function hColor(h){return h>=70?'#74C69D':h>=40?'#D4C84A':h>=15?'#F4A261':'#E06060';}
+
+function renderMap(){
+  chars.forEach(c=>{
+    if(!c.el)return;
+    c.el.style.left=c.x+'%';c.el.style.top=c.y+'%';
+    c.el.classList.toggle('moving',c.state==='moving');
+    c.el.classList.toggle('asleep',c.state==='asleep');
+    const m=document.getElementById('mood-'+c.id);
+    if(m)m.textContent=moodFor(c);
+    const tk=document.getElementById('task-'+c.id);
+    if(tk){
+      const q=quests.find(x=>x.requesterId===c.id||x.sourceId===c.id);
+      let badge='';
+      if(q){
+        if(q.sourceId===c.id&&q.stage==='collect') badge='📦';
+        else if(q.requesterId===c.id) badge=q.stage==='deliver'?'🎁':'❗';
+      }
+      tk.textContent=badge;
+    }
+  });
+  wrap.classList.toggle('night',isNight());
+}
+
+function renderClock(){
+  const week=Math.floor((simDay-1)/7)+1, dow=DAYS[(simDay-1)%7];
+  const h=String(Math.floor(simHour)).padStart(2,'0');
+  const m=String(Math.floor((simHour%1)*60)).padStart(2,'0');
+  document.getElementById('clock-date').textContent=T().weekDow(week,dow);
+  document.getElementById('clock-time').textContent=`· ${h}:${m}`;
+  document.getElementById('daynight').textContent=isNight()?'🌙':'☀️';
+  const pct=(((simDay-1)%7)+simHour/24)/7*100;
+  document.getElementById('week-fill').style.width=Math.min(100,pct)+'%';
+}
+
+function statusLine(c){
+  if(c.state==='asleep') return T().sAsleep;
+  if(c.state==='moving'){
+    const p=(c.dest||{}).place;
+    const where=p==='home'?T().placeHome:p==='yard'?T().placeYard:p==='nearby'?T().placeNearby:
+                p==='wander'?T().placeWander:poiName(p);
+    const dec=curDec(c);
+    return T().sWalking(where, dec?dec.t.toLowerCase():T().wandering);
+  }
+  return T().sPausing;
+}
+
+function renderRoster(){
+  const r=document.getElementById('roster');
+  const sorted=[...chars].sort((a,b)=>b.h-a.h);
+  // update rows in place (rebuilding innerHTML every tick would eat clicks on the rows)
+  sorted.forEach(c=>{
+    let row=r.querySelector(`.roster-row[data-id="${c.id}"]`);
+    if(!row){
+      row=document.createElement('div');row.className='roster-row';row.dataset.id=c.id;
+      row.innerHTML=`<span class="rr-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}</span>
+        <div class="rr-info"><div class="rr-name"></div><div class="rr-status"></div></div>
+        <div class="rr-h"></div>`;
+      row.addEventListener('click',()=>selectChar(c.id));
+      r.appendChild(row);
+    }
+    const st=STYLE[P[c.pers].style];
+    const askQ=quests.find(q=>q.requesterId===c.id);
+    const dec=curDec(c);
+    const status=askQ?(askQ.stage==='deliver'?T().rWaitDeliver:T().rNeedFavor):
+      c.state==='asleep'?T().rAsleep:
+      c.state==='moving'?(st.tag+' '+(dec?dec.t.toLowerCase():T().rOnMove)):T().rPausing;
+    row.querySelector('.rr-name').textContent=c.name;
+    row.querySelector('.rr-status').textContent=status;
+    const h=row.querySelector('.rr-h');h.textContent=Math.round(c.h)+'%';h.style.color=hColor(c.h);
+  });
+  // keep DOM order in sync with the happiness sort (moving nodes preserves their click handlers)
+  sorted.forEach(c=>r.appendChild(r.querySelector(`.roster-row[data-id="${c.id}"]`)));
+  const moving=chars.filter(c=>c.state==='moving').length;
+  const asleep=chars.filter(c=>c.state==='asleep').length;
+  document.getElementById('ov-sub').textContent=
+    asleep===chars.length?T().allAsleep:
+    T().ovSub(moving,asleep,chars.length-moving-asleep);
+  document.getElementById('map-sub').textContent=
+    isNight()?T().msNight(asleep):T().msDay(chars.length);
+}
+
+// ─── DETAIL PANEL ─────────────────────────────────────────────────────
+function selectChar(id){
+  selectedId=id;
+  chars.forEach(c=>c.el&&c.el.classList.toggle('selected',c.id===id));
+  document.getElementById('overview').style.display='none';
+  document.getElementById('detail').classList.add('show');
+  toggleTray(null);
+  renderDetail();
+  renderQuestCard(chars.find(c=>c.id===id));   // interactive — rendered on demand, not per tick
+}
+function deselect(){
+  selectedId=null;
+  chars.forEach(c=>c.el&&c.el.classList.remove('selected'));
+  document.getElementById('detail').classList.remove('show');
+  document.getElementById('overview').style.display='flex';
+}
+function renderDetail(){
+  const c=chars.find(x=>x.id===selectedId); if(!c)return;
+  const def=P[c.pers], st=STYLE[def.style];
+  const dtE=document.getElementById('dt-emoji');dtE.innerHTML=doodleSVG(c.cat);dtE.style.setProperty('--c',c.color);
+  document.getElementById('dt-name').textContent=c.name;
+  document.getElementById('dt-type').textContent=T().dType(typeName(c.type), st.word);
+  document.getElementById('dt-pers').textContent=def.badge+' '+def.label;
+  document.getElementById('dt-status').innerHTML=statusLine(c);
+  const hp=Math.round(c.h);
+  document.getElementById('dt-hfill').style.cssText=`width:${hp}%;background:${hColor(c.h)}`;
+  document.getElementById('dt-hpct').textContent=hp+'%';
+  document.getElementById('dt-bio').textContent=def.bio;
+  document.getElementById('dt-traits').innerHTML=def.traits.map(t=>`<span class="trait">${t}</span>`).join('');
+  // decisions
+  document.getElementById('dt-decisions').innerHTML=def.decisions.map((d,idx)=>{
+    const active=c.decisionIdx===idx && c.state!=='asleep';
+    return `<div class="dec${active?' active':''}"><span class="dec-ico">${d.i}</span>
+      <span class="dec-txt">${d.t}</span>${active?`<span class="dec-now">${T().nowTag}</span>`:''}</div>`;
+  }).join('');
+  document.getElementById('dt-dec-hint').textContent=T().decHint(c.name, def.label.toLowerCase());
+  // treasures (non-interactive — safe to refresh every tick).
+  // NOTE: the give tray and quest card are rendered ONLY on demand (not on the periodic
+  // tick) — rebuilding their buttons 10×/s would eat real mouse clicks.
+  renderTreasures(c);
+  // history
+  const hist=document.getElementById('dt-history');
+  if(!c.history.length){hist.innerHTML=`<div class="hist-empty">${T().histEmpty}</div>`;}
+  else hist.innerHTML=[...c.history].reverse().map(e=>
+    `<div class="hist-entry"><span class="hist-ico">${e.i}</span><div class="hist-body">
+      <div class="hist-time">${e.time}</div><div class="hist-text">${e.text}</div></div></div>`).join('');
+}
+
+// ─── LOGS ─────────────────────────────────────────────────────────────
+function timeStr(){const h=String(Math.floor(simHour)).padStart(2,'0');const m=String(Math.floor((simHour%1)*60)).padStart(2,'0');return`Day ${simDay} · ${h}:${m}`;}
+function log(c,icon,text){
+  c.history.push({i:icon,time:timeStr(),text:`${c.name} ${text}`});
+  if(c.history.length>80)c.history.shift();
+  globalLog(`<span class="cn">${c.emoji} ${c.name}</span> ${text}`);
+  if(selectedId===c.id) renderDetail();
+}
+function globalLog(html,cls=''){
+  const lg=document.getElementById('ov-log');
+  const el=document.createElement('div');el.className='log-entry '+cls;
+  el.innerHTML=`<div class="log-time">${timeStr()}</div><div class="log-text">${html}</div>`;
+  lg.insertBefore(el,lg.firstChild);
+  while(lg.children.length>50)lg.removeChild(lg.lastChild);
+}
+function say(c,text){
+  const b=document.getElementById('say-'+c.id);
+  if(b){b.textContent=text;b.classList.add('show');c.sayT=2.5;}
+}
+
+// ─── CARE ACTIONS ─────────────────────────────────────────────────────
+function careAction(act){
+  const c=chars.find(x=>x.id===selectedId); if(!c)return;
+  if(act==='follow'){ // flash the ring + bounce
+    c.el?.classList.remove('just-cared');void c.el?.offsetWidth;c.el?.classList.add('just-cared');
+    say(c,T().sayHere);return;
+  }
+  if(c.state==='asleep'){c.state='idle';c.pauseLeft=0;}   // wake gently
+  let amt=0,cn=0,icon='',txt='';
+  if(act==='feed'){amt=25;cn=2;icon='🍎';txt=T().cFed;}
+  if(act==='play'){amt=20;cn=3;icon='🎮';txt=T().cPlay;}
+  if(act==='greet'){amt=8;cn=1;icon='👋';txt=T().cGreet; say(c,pick(P[c.pers].says));}
+  c.h=Math.min(100,c.h+amt);
+  c.el?.classList.remove('just-cared');void c.el?.offsetWidth;c.el?.classList.add('just-cared');
+  if(cn>0) earn(cn,c);
+  log(c,icon,txt);
+  globalLog(T().cCaredG(c.emoji,c.name,cn),'care');
+  renderDetail();
+}
+
+// ─── COINS & DOPAMINE FX ──────────────────────────────────────────────
+function earn(amount,charForFx){
+  coins+=amount; updateCoinUI();
+  if(charForFx) coinBurst(charForFx,amount);
+}
+function updateCoinUI(){
+  document.getElementById('coin-count').textContent=coins;
+  const sc=document.getElementById('shop-coin-count'); if(sc)sc.textContent=coins;
+  const pill=document.getElementById('coin-pill');
+  pill.classList.remove('pop');void pill.offsetWidth;pill.classList.add('pop');
+  setTimeout(()=>pill.classList.remove('pop'),200);
+}
+function coinBurst(c,amount){
+  const fx=document.createElement('div');fx.className='coin-fx';fx.textContent='+'+amount+' 🪙';
+  fx.style.left=c.x+'%';fx.style.top=(c.y-4)+'%';
+  wrap.appendChild(fx);setTimeout(()=>fx.remove(),1100);
+}
+function react(c,emoji){
+  const fx=document.createElement('div');fx.className='react-fx';fx.textContent=emoji;
+  fx.style.left=c.x+'%';fx.style.top=(c.y-3)+'%';
+  wrap.appendChild(fx);setTimeout(()=>fx.remove(),1300);
+}
+function confetti(c){
+  const colors=['#FFD93D','#74C69D','#FF6B6B','#6BA6FF','#F4A261','#C77DFF'];
+  for(let i=0;i<14;i++){
+    const p=document.createElement('div');p.className='confetti';
+    p.style.left=c.x+'%';p.style.top=(c.y-2)+'%';p.style.background=colors[i%colors.length];
+    p.style.setProperty('--cx',rnd(-42,42).toFixed(0)+'px');
+    p.style.setProperty('--cr',rnd(-220,220).toFixed(0)+'deg');
+    p.style.animationDelay=(i*0.012)+'s';
+    wrap.appendChild(p);setTimeout(()=>p.remove(),1050);
+  }
+}
+
+// ─── GIVE A GIFT ──────────────────────────────────────────────────────
+function giveGift(itemKey){
+  const c=chars.find(x=>x.id===selectedId); if(!c)return;
+  if(!bag[itemKey]||bag[itemKey]<=0) return;
+  bag[itemKey]--;
+  const it=ITEMS[itemKey], pr=prefOf(c.pers,itemKey), fx=GIFT_FX[pr];
+  c.h=Math.min(100,c.h+fx.h);
+  c.treasures[itemKey]=(c.treasures[itemKey]||0)+1;
+  if(c.state==='asleep'){c.state='idle';c.pauseLeft=0;}
+  earn(fx.coins,c); react(c,fx.react);
+  c.el?.classList.remove('just-cared');void c.el?.offsetWidth;c.el?.classList.add('just-cared');
+  say(c, pr==='love'?T().sayLove:pr==='like'?T().sayLike:T().sayMeh);
+  log(c,it.emoji,T().gGiven(it.name.toLowerCase(),fx.word,fx.coins));
+  globalLog(T().gGaveG(c.emoji,c.name,it.emoji,fx.word,fx.coins),'care');
+  if(pr==='love') confetti(c);
+  renderDetail(); renderGiveItems(); renderShop();   // refresh counts AFTER the click completes
+}
+
+// ─── ERRANDS THE CHARACTERS GIVE YOU ──────────────────────────────────
+// A character asks the player to fetch an item from a neighbour. The PLAYER is the
+// courier: collect it from the source (tap them), then deliver to the requester (tap them).
+function questFor(id){ return quests.find(q=>q.requesterId===id||q.sourceId===id); }
+
+function maybeNewQuest(c){
+  if(quests.length>=3) return;
+  if(Math.random()>=0.06) return;
+  if(questFor(c.id)) return;                       // c already involved in a quest
+  // the favour: an item this character would love or like
+  const wishPool=[...PREF[c.pers].loves, ...PREF[c.pers].likes];
+  const itemKey=pick(wishPool.length?wishPool:ITEM_KEYS);
+  // a source neighbour who isn't already busy in a quest
+  const candidates=chars.filter(x=>x.id!==c.id && !questFor(x.id) && x.state!=='asleep');
+  if(!candidates.length) return;
+  const source=pick(candidates);
+  const reward=18+Math.floor(Math.random()*13);    // 18–30 coins
+  quests.push({id:questSeq++, requesterId:c.id, sourceId:source.id, itemKey, reward, stage:'collect'});
+  const it=ITEMS[itemKey];
+  say(c,T().sayHelp);
+  log(c,'💭',T().qAsk(it.name.toLowerCase(), source.name));
+  globalLog(`<span class="cn">${c.emoji} ${c.name}</span> ${T().qAskG(it.emoji, source.name)}`);
+  refreshQuestUI(c.id, source.id);
+}
+
+function collectForQuest(qid){
+  const q=quests.find(x=>x.id===qid); if(!q||q.stage!=='collect') return;
+  q.stage='deliver';
+  const src=chars.find(c=>c.id===q.sourceId), req=chars.find(c=>c.id===q.requesterId), it=ITEMS[q.itemKey];
+  if(src.state==='asleep'){src.state='idle';src.pauseLeft=0;}
+  react(src,'📦'); say(src,T().sayTake); earn(2,src);   // small coin for the step
+  log(src,it.emoji,T().qGave(it.name.toLowerCase(), req.name));
+  globalLog(T().qPickG(it.emoji, src.emoji, src.name, req.name),'care');
+  refreshQuestUI(q.requesterId, q.sourceId);
+}
+
+function deliverQuest(qid){
+  const q=quests.find(x=>x.id===qid); if(!q||q.stage!=='deliver') return;
+  const req=chars.find(c=>c.id===q.requesterId), it=ITEMS[q.itemKey];
+  if(req.state==='asleep'){req.state='idle';req.pauseLeft=0;}
+  req.h=Math.min(100,req.h+24);
+  req.treasures[q.itemKey]=(req.treasures[q.itemKey]||0)+1;
+  earn(q.reward,req); react(req,'💖'); confetti(req); say(req,T().sayThanks);
+  req.el?.classList.remove('just-cared');void req.el?.offsetWidth;req.el?.classList.add('just-cared');
+  log(req,'🎉',T().qGot(it.name.toLowerCase(), q.reward));
+  globalLog(T().qDelG(it.emoji, req.emoji, req.name, q.reward),'care');
+  quests=quests.filter(x=>x.id!==q.id);
+  refreshQuestUI(q.requesterId, q.sourceId);
+}
+
+// keep all the quest views in sync (overview list + the detail card if it's showing)
+function refreshQuestUI(...ids){
+  renderQuests();
+  if(selectedId!=null && (ids.includes(selectedId) || ids.length===0))
+    renderQuestCard(chars.find(c=>c.id===selectedId));
+}
+
+function renderQuestCard(c){
+  const sec=document.getElementById('dt-quest-sec'), box=document.getElementById('dt-quest');
+  if(!sec||!c){ if(sec)sec.style.display='none'; return; }
+  const asReq=quests.find(q=>q.requesterId===c.id);
+  const asSrc=quests.find(q=>q.sourceId===c.id && q.stage==='collect');
+  if(!asReq && !asSrc){ sec.style.display='none'; box.innerHTML=''; return; }
+  sec.style.display='block';
+  let html='';
+  if(asSrc){
+    const it=ITEMS[asSrc.itemKey], req=chars.find(x=>x.id===asSrc.requesterId), iname=it.name.toLowerCase();
+    html+=`<div class="quest-card">
+      <div class="qc-head">${T().qcSrcHead(c.name)}</div>
+      <div class="qc-body">${T().qcSrcBody(req.emoji,req.name,it.emoji,iname,c.name)}</div>
+      <button class="qc-btn" data-collect="${asSrc.id}">${T().qcSrcBtn(iname)}</button></div>`;
+  }
+  if(asReq){
+    const it=ITEMS[asReq.itemKey], src=chars.find(x=>x.id===asReq.sourceId), iname=it.name.toLowerCase();
+    if(asReq.stage==='collect'){
+      html+=`<div class="quest-card">
+        <div class="qc-head">${T().qcReqHead(c.name)}</div>
+        <div class="qc-body">${T().qcReqBody(it.emoji,iname,src.emoji,src.name,asReq.reward)}</div>
+        <button class="qc-btn ghost" data-goto="${src.id}">${T().qcReqBtn(src.name)}</button></div>`;
+    } else {
+      html+=`<div class="quest-card deliver">
+        <div class="qc-head">${T().qcDelHead}</div>
+        <div class="qc-body">${T().qcDelBody(it.emoji,iname,c.name,asReq.reward)}</div>
+        <button class="qc-btn" data-deliver="${asReq.id}">${T().qcDelBtn(c.name)}</button></div>`;
+    }
+  }
+  box.innerHTML=html;
+}
+
+function renderQuests(){
+  const panel=document.getElementById('quests-panel'); if(!panel)return;
+  if(!quests.length){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  document.getElementById('qp-count').textContent=quests.length;
+  document.getElementById('quests-list').innerHTML=quests.map(q=>{
+    const req=chars.find(c=>c.id===q.requesterId), src=chars.find(c=>c.id===q.sourceId), it=ITEMS[q.itemKey];
+    const collect=q.stage==='collect';
+    const next=collect?src:req;
+    const step=collect?T().qrCollect(it.emoji,src.name):T().qrDeliver(it.emoji,req.name);
+    return `<div class="quest-row${collect?'':' deliver'}" data-next="${next.id}">
+      <span class="qr-item">${it.emoji}</span>
+      <div class="qr-info"><div class="qr-title">${T().qrTitle(req.emoji,req.name,it.name.toLowerCase())}</div>
+        <div class="qr-step">${step}</div></div>
+      <span class="qr-go">→</span></div>`;
+  }).join('');
+}
+
+// ─── SHOP ─────────────────────────────────────────────────────────────
+function buyItem(itemKey){
+  const it=ITEMS[itemKey];
+  if(coins<it.cost) return;
+  coins-=it.cost; bag[itemKey]=(bag[itemKey]||0)+1;
+  updateCoinUI(); renderShop();
+  if(document.getElementById('give-tray').classList.contains('show')) renderGiveItems();
+}
+function renderShop(){
+  const sc=document.getElementById('shop-coin-count'); if(sc)sc.textContent=coins;
+  const g=document.getElementById('shop-grid'); if(!g)return;
+  g.innerHTML=ITEM_KEYS.map(k=>{
+    const it=ITEMS[k], own=bag[k]||0, afford=coins>=it.cost;
+    return `<div class="shop-item"><span class="si-emoji">${idoo(k)}</span>
+      <div class="si-info"><div class="si-name">${it.name}</div><div class="si-own">${T().shopOwn}${own}</div></div>
+      <button class="si-buy" data-buy="${k}" ${afford?'':'disabled'}>🪙 ${it.cost}</button></div>`;
+  }).join('');
+}
+
+// ─── GIFT TRAY RENDERING ──────────────────────────────────────────────
+function toggleTray(which){
+  const g=document.getElementById('give-tray'), gb=document.getElementById('btn-give');
+  const showG=which==='give'&&!g.classList.contains('show');
+  g.classList.toggle('show',showG); gb.classList.toggle('on',showG);
+}
+function renderGiveItems(){
+  const c=chars.find(x=>x.id===selectedId);
+  const el=document.getElementById('give-items'); if(!el)return;
+  el.innerHTML=ITEM_KEYS.map(k=>{
+    const it=ITEMS[k], n=bag[k]||0, pr=c?prefOf(c.pers,k):'neutral';
+    const heart=pr==='love'?'💚':pr==='like'?'🙂':'';
+    return `<div class="item-chip${n<=0?' empty':''}" data-give="${k}">
+      ${heart?`<span class="ic-pref">${heart}</span>`:''}<span class="ic-count">${n}</span>
+      <div class="ic-emoji">${idoo(k)}</div><div class="ic-name">${it.name}</div></div>`;
+  }).join('');
+}
+function renderTreasures(c){
+  const el=document.getElementById('dt-treasures'); if(!el)return;
+  const keys=Object.keys(c.treasures).filter(k=>c.treasures[k]>0);
+  el.innerHTML=keys.length
+    ? keys.map(k=>`<span class="treasure"><span class="tdood">${idoo(k)}</span><span class="tc">${c.treasures[k]}</span></span>`).join('')
+    : `<span class="treasure-empty">${T().treasureEmpty}</span>`;
+}
+
+// ─── STATIC UI STRINGS + LANGUAGE SWITCH ──────────────────────────────
+function applyStaticStrings(){
+  const s=T();
+  document.documentElement.lang=LANG;
+  const set=(sel,txt)=>{const el=document.querySelector(sel); if(el)el.textContent=txt;};
+  set('.tb-logo', s.logo);
+  document.getElementById('btn-lang').textContent='🌐 '+LANG.toUpperCase();
+  document.getElementById('btn-shop').textContent=s.shop;
+  set('.map-title', s.mapTitle);
+  document.getElementById('legend').innerHTML=`
+    <div class="legend-item"><span class="legend-dot">🏃</span> ${s.legendRoam}</div>
+    <div class="legend-item"><span class="legend-dot">🚶</span> ${s.legendNear}</div>
+    <div class="legend-item"><span class="legend-dot">🏡</span> ${s.legendHome}</div>
+    <div class="legend-item"><span class="legend-dot">💤</span> ${s.legendSleep}</div>
+    <div class="legend-spacer"></div>
+    <div class="legend-hint">${s.legendHint}</div>`;
+  set('#overview .sb-title', s.ovTitle);
+  document.getElementById('qp-label').textContent=s.errandsForYou;
+  document.getElementById('ov-log-head').textContent=s.logHead;
+  document.getElementById('dt-back').textContent=s.back;
+  // detail section titles (stable DOM order)
+  const titles=document.querySelectorAll('.dt-scroll .dt-sec-title');
+  if(titles.length>=7){
+    titles[0].textContent=s.tNow; titles[1].textContent=s.tErrand; titles[2].textContent=s.tWho;
+    titles[3].textContent=s.tDec;
+    titles[4].innerHTML=`${s.tYouCan} <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">${s.earns}</span>`;
+    titles[5].textContent=s.tTreasures; titles[6].textContent=s.tHistory;
+  }
+  // care buttons (keep emoji + coin amount, swap the label)
+  const care={feed:['🍎',s.feed,'+2','.8'],play:['🎮',s.play,'+3','.6'],greet:['👋',s.greet,'+1','.6'],follow:['📍',s.find,'',null]};
+  document.querySelectorAll('.dt-actions .dt-act[data-act]').forEach(b=>{
+    const [emo,lab,plus,op]=care[b.dataset.act]||[];
+    if(lab) b.innerHTML=plus?`${emo} ${lab} <span style="opacity:${op}">${plus}</span>`:`${emo} ${lab}`;
+  });
+  document.getElementById('btn-give').textContent=s.give;
+  document.getElementById('give-hint').textContent=s.giveHint;
+  set('.shop-title', s.shopTitle);
+  set('.shop-sub', s.shopSub);
+  set('.shop-close', s.shopDone);
+}
+
+function switchLang(lang){
+  if(lang===LANG) return;
+  LANG=lang; try{localStorage.setItem('nbhd-lang',lang);}catch(e){}
+  // rebuild every language-dependent data table
+  DAYS=DAYS_TXT[LANG];
+  POI=POI_BASE.map(p=>({...p,name:POI_NAME[LANG][p.key]}));
+  buildStyle(); buildP(); buildItems(); buildGiftFx(); WEATHER=WEATHER_TXT[LANG];
+  // rebuild the map DOM so feature/plot/character labels pick up the new language
+  wrap.innerHTML=''; buildMap();
+  chars.forEach(c=>c.el&&c.el.classList.toggle('selected',c.id===selectedId));
+  applyStaticStrings();
+  renderMap();renderClock();renderRoster();renderShop();renderQuests();
+  if(selectedId!=null){ renderDetail(); renderQuestCard(chars.find(c=>c.id===selectedId)); }
+}
+
+// ─── MAIN LOOP ────────────────────────────────────────────────────────
+let acc=0;
+function tick(ts){
+  if(running){
+    if(lastTs!=null){
+      const dt=Math.min((ts-lastTs)/1000,0.05);
+      stepSim(dt*SPEEDS[speedIdx]);
+    }
+    lastTs=ts;
+  }else lastTs=null;
+  renderMap();
+  acc+=1;
+  if(acc%6===0){renderClock();renderRoster();if(selectedId)renderDetail();}  // light UI ~10fps
+  requestAnimationFrame(tick);
+}
+
+// ─── WIRING ───────────────────────────────────────────────────────────
+document.getElementById('btn-playpause').addEventListener('click',()=>{
+  running=!running;document.getElementById('btn-playpause').textContent=running?'⏸':'▶';if(running)lastTs=null;
+});
+document.getElementById('speed-btns').addEventListener('click',e=>{
+  const b=e.target.closest('[data-speed]');if(!b)return;
+  speedIdx=+b.dataset.speed;
+  document.querySelectorAll('#speed-btns .tb-btn').forEach((x,i)=>x.classList.toggle('active',i===speedIdx));
+});
+document.getElementById('btn-lang').addEventListener('click',()=>switchLang(LANG==='nl'?'en':'nl'));
+document.getElementById('dt-back').addEventListener('click',deselect);
+// care buttons (only those with data-act, not the gift/errand buttons)
+document.querySelectorAll('.dt-actions .dt-act').forEach(b=>b.addEventListener('click',()=>careAction(b.dataset.act)));
+
+// gift toggle
+document.getElementById('btn-give').addEventListener('click',()=>{toggleTray('give');renderGiveItems();});
+document.getElementById('give-items').addEventListener('click',e=>{
+  const chip=e.target.closest('[data-give]'); if(!chip||chip.classList.contains('empty'))return;
+  giveGift(chip.dataset.give);
+});
+
+// quest card buttons (collect / deliver / go-to-source)
+document.getElementById('dt-quest').addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn)return;
+  if(btn.dataset.collect) collectForQuest(+btn.dataset.collect);
+  else if(btn.dataset.deliver) deliverQuest(+btn.dataset.deliver);
+  else if(btn.dataset.goto) selectChar(+btn.dataset.goto);
+});
+// overview errand list → jump to the character you need next
+document.getElementById('quests-list').addEventListener('click',e=>{
+  const row=e.target.closest('[data-next]'); if(!row)return;
+  selectChar(+row.dataset.next);
+});
+
+// shop
+document.getElementById('btn-shop').addEventListener('click',()=>{
+  renderShop(); document.getElementById('shop-modal').classList.remove('hidden');
+});
+document.getElementById('shop-close').addEventListener('click',()=>document.getElementById('shop-modal').classList.add('hidden'));
+document.getElementById('shop-modal').addEventListener('click',e=>{
+  if(e.target.id==='shop-modal') document.getElementById('shop-modal').classList.add('hidden');
+});
+document.getElementById('shop-grid').addEventListener('click',e=>{
+  const b=e.target.closest('[data-buy]'); if(!b||b.disabled)return;
+  buyItem(b.dataset.buy);
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+buildMap();
+applyStaticStrings();
+renderMap();renderClock();renderRoster();renderShop();renderQuests();
+globalLog(T().initReady);
+globalLog(T().initTip);
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

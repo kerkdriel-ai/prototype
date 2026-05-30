@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Neighborhood — Player View</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --black:#0a0a0a; --cream:#F5F0E8; --white:#fff;
+  --green:#2D6A4F; --green-light:#74C69D; --green-pale:#D8F3DC;
+  --grass:#CDE7C8; --grass2:#BFDFB9;
+  --water:#A9D6E5; --water2:#89C2D9;
+  --path:#E7DDC9; --plot:#EAD9B8;
+  --yellow:#FFF570; --orange:#F4A261; --red:#FF6B6B;
+  --text:#1a1a1a; --muted:#666; --border:rgba(0,0,0,0.08);
+  --font:'DM Sans',Helvetica,sans-serif; --serif:'Instrument Serif',Georgia,serif;
+  --radius:24px;
+}
+@property --angle{syntax:'<angle>';initial-value:0deg;inherits:false;}
+@keyframes spin{from{--angle:0deg;}to{--angle:360deg;}}
+html,body{height:100%;overflow:hidden;}
+body{background:#1c2620;color:var(--text);font-family:var(--font);font-size:14px;
+  -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;}
+
+/* ─── VIEWPORT / CAMERA ─── */
+#viewport{position:fixed;inset:0;overflow:hidden;cursor:default;
+  background:linear-gradient(160deg,var(--grass) 0%,var(--grass2) 100%);}
+#viewport.night{background:linear-gradient(160deg,#3b5a52 0%,#2c4640 100%);}
+#world{position:absolute;top:0;left:0;will-change:transform;}
+#world-bg{position:absolute;inset:0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.28), transparent 38%),
+    repeating-conic-gradient(rgba(0,0,0,0.012) 0% 25%, transparent 0% 50%) 0/64px 64px;}
+#viewport.night #world-bg{background:radial-gradient(circle at 70% 15%, rgba(255,255,255,.10), transparent 45%);}
+#paths{position:absolute;top:0;left:0;}
+
+/* POI features */
+.feat{position:absolute;transform:translate(-50%,-50%);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.feat-pond{background:radial-gradient(circle at 40% 35%,var(--water),var(--water2));box-shadow:inset 0 3px 18px rgba(0,0,0,.14);}
+.feat-park{background:radial-gradient(circle at 40% 35%,#9FD49A,#7FBE7A);border-radius:42% 46% 40% 48%;}
+.feat-square{background:radial-gradient(circle at 45% 40%,#F0E2C4,#E2CFA4);box-shadow:inset 0 3px 14px rgba(0,0,0,.1);}
+.feat-emoji{width:96px;height:96px;opacity:.92;}
+.doodle{display:block;width:100%;height:100%;}
+.plot-house{width:74px;height:74px;display:block;}
+.feat-label{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);font-size:15px;font-weight:600;color:rgba(0,0,0,.4);white-space:nowrap;letter-spacing:.03em;}
+#viewport.night .feat-label{color:rgba(255,255,255,.6);}
+
+/* plots (homes) */
+.plot{position:absolute;transform:translate(-50%,-50%);width:120px;height:100px;border-radius:18px;
+  background:var(--plot);box-shadow:inset 0 0 0 3px rgba(0,0,0,.06), 0 4px 10px rgba(0,0,0,.08);
+  display:flex;align-items:center;justify-content:center;font-size:40px;opacity:.92;}
+.plot-label{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:600;color:rgba(0,0,0,.42);white-space:nowrap;}
+#viewport.night .plot-label{color:rgba(255,255,255,.55);}
+
+/* characters */
+.ch{position:absolute;transform:translate(-50%,-50%);z-index:5;will-change:transform;
+  display:flex;flex-direction:column;align-items:center;gap:3px;}
+.ch-emoji{width:64px;height:64px;padding:9px;border-radius:50%;background:var(--c,#CDE7C8);box-shadow:0 5px 8px rgba(0,0,0,.22),inset 0 0 0 2.5px rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;animation:bob 2.4s ease-in-out infinite;position:relative;}
+.ch.moving .ch-emoji{animation:bob 0.6s ease-in-out infinite;}
+.ch.asleep .ch-emoji{animation:none;filter:drop-shadow(0 3px 4px rgba(0,0,0,.2)) grayscale(.3);opacity:.8;}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-6px) rotate(2deg);}}
+.ch-name{font-size:12px;font-weight:600;color:var(--text);background:rgba(255,255,255,.85);padding:2px 9px;border-radius:200px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.12);}
+.ch-mood{position:absolute;top:-6px;right:-10px;font-size:20px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.2));}
+.ch-wish{position:absolute;top:-46px;left:50%;transform:translateX(-50%);background:#fff;border-radius:14px;padding:5px 11px 5px 9px;
+  display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;
+  box-shadow:0 4px 12px rgba(0,0,0,.18);animation:wishBob 1.4s ease-in-out infinite;}
+.ch-wish::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#fff;border-bottom:0;}
+.ch-wish .we{font-size:18px;}
+@keyframes wishBob{0%,100%{transform:translateX(-50%) translateY(0);}50%{transform:translateX(-50%) translateY(-4px);}}
+.ch-say{position:absolute;bottom:64px;left:50%;transform:translateX(-50%);background:#fff;border-radius:14px;padding:6px 12px;font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,.16);opacity:0;transition:opacity .3s;max-width:220px;}
+.ch-say.show{opacity:1;}
+.ch-say::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:#fff;border-bottom:0;}
+
+/* focus ring + interaction prompt (the character you can talk to) */
+.ch-ring{position:absolute;top:50%;left:50%;width:120px;height:120px;transform:translate(-50%,-50%);border-radius:50%;
+  border:3px dashed var(--green);opacity:0;transition:opacity .2s,transform .2s;animation:ringSpin 8s linear infinite;}
+.ch.focus .ch-ring{opacity:.9;transform:translate(-50%,-50%) scale(1);}
+@keyframes ringSpin{to{transform:translate(-50%,-50%) rotate(360deg);}}
+.ch-prompt{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;
+  padding:7px 14px;border-radius:200px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(45,106,79,.4);
+  display:none;align-items:center;gap:7px;cursor:pointer;z-index:8;}
+.ch.focus .ch-prompt{display:flex;animation:promptPop .25s ease;}
+@keyframes promptPop{from{transform:translateX(-50%) translateY(6px) scale(.85);opacity:0;}to{transform:translateX(-50%) translateY(0) scale(1);opacity:1;}}
+.key-cap{background:rgba(255,255,255,.25);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:800;}
+
+/* ─── PLAYER ─── */
+#player{position:absolute;transform:translate(-50%,-50%);z-index:7;display:flex;flex-direction:column;align-items:center;gap:2px;will-change:transform;}
+#player-emoji{font-size:54px;line-height:1;filter:drop-shadow(0 6px 7px rgba(0,0,0,.32));position:relative;transition:transform .08s;}
+#player.walk #player-emoji{animation:walkBob .42s ease-in-out infinite;}
+@keyframes walkBob{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-7px) rotate(3deg);}}
+#player-shadow{position:absolute;bottom:-2px;left:50%;width:38px;height:12px;transform:translateX(-50%);
+  background:radial-gradient(ellipse,rgba(0,0,0,.22),transparent 70%);border-radius:50%;z-index:-1;}
+#player-name{font-size:11px;font-weight:700;color:#fff;background:var(--green);padding:2px 9px;border-radius:200px;white-space:nowrap;box-shadow:0 2px 5px rgba(0,0,0,.2);}
+
+/* carry indicator */
+.carry-fx{position:absolute;top:-10px;right:-14px;font-size:22px;animation:wishBob 1.2s ease-in-out infinite;}
+
+/* coin / react FX */
+@keyframes coinFloat{0%{opacity:0;transform:translate(-50%,0) scale(.6);}15%{opacity:1;transform:translate(-50%,-22px) scale(1.1);}100%{opacity:0;transform:translate(-50%,-72px) scale(1);}}
+.coin-fx{position:absolute;transform:translate(-50%,0);font-size:20px;font-weight:800;color:#caa024;text-shadow:0 1px 2px rgba(0,0,0,.25),0 0 1px #fff;pointer-events:none;z-index:40;animation:coinFloat 1.1s ease-out forwards;white-space:nowrap;}
+@keyframes reactFloat{0%{opacity:0;transform:translate(-50%,0) scale(.5);}20%{opacity:1;transform:translate(-50%,-26px) scale(1.2);}100%{opacity:0;transform:translate(-50%,-66px) scale(1);}}
+.react-fx{position:absolute;transform:translate(-50%,0);font-size:30px;pointer-events:none;z-index:40;animation:reactFloat 1.3s ease-out forwards;}
+@keyframes confettiFall{to{transform:translate(var(--cx),160px) rotate(var(--cr));opacity:0;}}
+.confetti{position:absolute;width:9px;height:14px;border-radius:2px;pointer-events:none;z-index:39;animation:confettiFall 1s ease-in forwards;}
+
+/* ─── HUD ─── */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:50;}
+#hud > *{pointer-events:auto;}
+.hud-top{position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.glass{background:rgba(245,240,232,0.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:200px;box-shadow:0 4px 16px rgba(0,0,0,.12);}
+#clock{display:flex;align-items:center;gap:9px;padding:9px 16px;font-size:13px;color:var(--muted);white-space:nowrap;}
+#clock strong{color:var(--text);font-weight:600;}
+#clock .dn{font-size:16px;}
+.hud-right{display:flex;align-items:center;gap:8px;}
+#coin-pill{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:#9a7b1a;
+  background:linear-gradient(180deg,#FFF6C8,#FFE9A0);padding:8px 15px 8px 12px;border-radius:200px;
+  box-shadow:inset 0 0 0 1px rgba(180,140,30,.25),0 3px 10px rgba(0,0,0,.1);transition:transform .15s;}
+#coin-pill.pop{transform:scale(1.18);}
+.hud-btn{font-family:var(--font);font-size:14px;font-weight:600;padding:9px 14px;border-radius:200px;cursor:pointer;border:none;color:var(--text);transition:background .15s;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.1);}
+.hud-btn:hover{filter:brightness(.96);}
+
+/* minimap */
+#minimap{position:absolute;top:64px;right:14px;width:150px;height:106px;border-radius:16px;overflow:hidden;
+  background:rgba(20,30,26,.55);backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.25);border:1.5px solid rgba(255,255,255,.18);}
+#minimap canvas{width:100%;height:100%;display:block;}
+#mm-label{position:absolute;bottom:4px;left:8px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.55);}
+
+/* objective / hint banner */
+#hint{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);max-width:min(92vw,560px);
+  text-align:center;font-size:13px;color:var(--text);padding:11px 20px;line-height:1.45;
+  display:flex;align-items:center;gap:9px;justify-content:center;transition:opacity .4s;}
+#hint b{font-weight:700;}
+#hint .hi-ico{font-size:18px;}
+
+/* controls help (desktop) */
+#help{position:absolute;bottom:18px;left:18px;font-size:12px;color:rgba(255,255,255,.85);
+  background:rgba(20,30,26,.5);backdrop-filter:blur(8px);border-radius:14px;padding:10px 13px;line-height:1.7;box-shadow:0 4px 12px rgba(0,0,0,.2);}
+#help .kc{display:inline-block;background:rgba(255,255,255,.18);border-radius:5px;padding:1px 6px;font-weight:800;font-size:11px;min-width:20px;text-align:center;}
+@media (max-width:760px){#help{display:none;}}
+
+/* joystick (touch) */
+#joy{position:absolute;bottom:26px;left:26px;width:128px;height:128px;border-radius:50%;
+  background:rgba(20,30,26,.32);border:2px solid rgba(255,255,255,.22);display:none;touch-action:none;}
+#joy-knob{position:absolute;top:50%;left:50%;width:56px;height:56px;border-radius:50%;transform:translate(-50%,-50%);
+  background:rgba(255,255,255,.85);box-shadow:0 4px 12px rgba(0,0,0,.25);}
+@media (pointer:coarse){#joy{display:block;} #help{display:none;}}
+/* action button (touch) */
+#act-btn{position:absolute;bottom:40px;right:30px;width:84px;height:84px;border-radius:50%;
+  background:var(--green);color:#fff;font-size:13px;font-weight:800;display:none;align-items:center;justify-content:center;
+  box-shadow:0 6px 18px rgba(45,106,79,.45);text-align:center;line-height:1.15;}
+#act-btn.show{display:flex;}
+@media (pointer:coarse){#act-btn{} }
+
+/* ─── INTERACTION SHEET ─── */
+#sheet-scrim{position:fixed;inset:0;background:rgba(0,0,0,.32);backdrop-filter:blur(3px);z-index:60;opacity:0;pointer-events:none;transition:opacity .25s;}
+#sheet-scrim.show{opacity:1;pointer-events:auto;}
+#sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(110%);z-index:61;
+  width:min(96vw,460px);background:var(--cream);border-top-left-radius:28px;border-top-right-radius:28px;
+  box-shadow:0 -10px 40px rgba(0,0,0,.3);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-height:86vh;display:flex;flex-direction:column;}
+#sheet.show{transform:translateX(-50%) translateY(0);}
+.sheet-grab{width:42px;height:5px;border-radius:3px;background:rgba(0,0,0,.18);margin:10px auto 4px;flex-shrink:0;}
+.sheet-top{padding:8px 22px 16px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.st-emoji{width:74px;height:74px;padding:10px;border-radius:20px;background:var(--c,#CDE7C8);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 0 0 2px rgba(255,255,255,.45);}
+.st-id{flex:1;min-width:0;}
+.st-name{font-family:var(--serif);font-style:italic;font-size:27px;color:var(--text);letter-spacing:-.02em;line-height:1.05;}
+.st-type{font-size:12px;color:var(--muted);margin-top:2px;}
+.st-pers{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:200px;background:rgba(0,0,0,.07);color:rgba(0,0,0,.6);margin-top:6px;}
+.st-close{flex-shrink:0;width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.07);font-size:18px;cursor:pointer;color:var(--muted);}
+.st-close:hover{background:rgba(0,0,0,.13);}
+.sheet-scroll{overflow-y:auto;padding:0 22px 22px;}
+.sheet-scroll::-webkit-scrollbar{width:4px;}.sheet-scroll::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px;}
+.st-status{font-size:13px;color:var(--text);background:#fff;border-radius:14px;padding:11px 13px;line-height:1.45;}
+.h-row{display:flex;align-items:center;gap:10px;margin-top:11px;}
+.h-bar{flex:1;height:9px;background:rgba(0,0,0,.1);border-radius:5px;overflow:hidden;}
+.h-fill{height:100%;border-radius:5px;transition:width .5s ease,background .5s;}
+.h-pct{font-size:13px;font-weight:700;width:38px;text-align:right;}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:18px 0 9px;}
+.st-bio{font-size:13px;color:var(--text);line-height:1.6;}
+.st-traits{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.trait{font-size:11px;font-weight:600;padding:4px 11px;border-radius:200px;background:var(--green-pale);color:var(--green);}
+.wish-banner{background:linear-gradient(180deg,#FFF7E6,#FFEFC9);border:1.5px solid #F0D9A0;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:11px;}
+.wb-emoji{width:38px;height:38px;flex-shrink:0;}
+.we-doodle{display:inline-block;width:20px;height:20px;vertical-align:middle;}
+.wb-txt{flex:1;font-size:12.5px;line-height:1.45;color:var(--text);}
+.wb-txt b{font-weight:700;}
+.wb-reward{font-size:11px;font-weight:700;color:#caa024;}
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.act{padding:12px 6px;border-radius:14px;border:1px solid var(--border);background:#fff;color:var(--text);font-family:var(--font);font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.act:hover{background:var(--green-pale);border-color:var(--green);color:var(--green);}
+.act .ae{font-size:22px;}
+.act.primary{background:var(--green);border-color:var(--green);color:#fff;}
+.act.primary:hover{background:#1e5c3a;}
+.act .plus{font-size:10px;opacity:.7;font-weight:700;}
+.give-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:4px;}
+.item-chip{position:relative;background:#fff;border:1.5px solid var(--border);border-radius:13px;padding:10px 4px 8px;text-align:center;cursor:pointer;transition:all .15s;}
+.item-chip:hover{border-color:var(--green);background:var(--green-pale);transform:translateY(-2px);}
+.item-chip.empty{opacity:.38;cursor:not-allowed;}
+.item-chip.empty:hover{border-color:var(--border);background:#fff;transform:none;}
+.ic-emoji{width:30px;height:30px;margin:0 auto;}
+.ic-name{font-size:9px;color:var(--muted);margin-top:3px;}
+.ic-count{position:absolute;top:-7px;right:-7px;background:var(--text);color:#fff;font-size:9px;font-weight:700;min-width:17px;height:17px;border-radius:200px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+.ic-pref{position:absolute;top:-7px;left:-7px;font-size:13px;}
+.treasure-row{display:flex;flex-wrap:wrap;gap:6px;}
+.treasure{position:relative;background:#fff;border-radius:11px;padding:6px;}
+.tdood{display:inline-block;width:30px;height:30px;}
+.treasure .tc{position:absolute;bottom:-4px;right:-4px;background:var(--green);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:200px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+.treasure-empty{font-size:12px;color:var(--muted);font-style:italic;}
+
+/* ─── SHOP MODAL ─── */
+#shop-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:80;padding:16px;}
+#shop-modal.hidden{display:none;}
+.shop-box{background:var(--cream);border-radius:28px;padding:24px;width:430px;max-width:100%;max-height:88vh;overflow-y:auto;}
+.shop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.shop-title{font-family:var(--serif);font-style:italic;font-size:26px;color:var(--text);letter-spacing:-.02em;}
+.shop-coins{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:#9a7b1a;background:linear-gradient(180deg,#FFF6C8,#FFE9A0);padding:6px 13px;border-radius:200px;}
+.shop-sub{font-size:12.5px;color:var(--muted);margin-bottom:16px;}
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.shop-item{background:#fff;border:1px solid var(--border);border-radius:16px;padding:12px;display:flex;align-items:center;gap:11px;}
+.shop-item .si-emoji{width:38px;height:38px;flex-shrink:0;}
+.si-info{flex:1;min-width:0;}
+.si-name{font-size:13px;font-weight:600;}
+.si-own{font-size:11px;color:var(--muted);}
+.si-buy{padding:7px 11px;border-radius:200px;border:none;background:var(--green);color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+.si-buy:hover{background:#1e5c3a;}
+.si-buy:disabled{background:rgba(0,0,0,.12);color:rgba(0,0,0,.35);cursor:not-allowed;}
+.shop-close{margin-top:18px;width:100%;padding:12px;border-radius:200px;border:1px solid var(--border);background:#fff;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;}
+.shop-close:hover{background:rgba(0,0,0,.05);}
+
+/* intro card */
+#intro{position:fixed;inset:0;z-index:95;background:rgba(20,30,26,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;}
+#intro.hidden{display:none;}
+.intro-box{background:var(--cream);border-radius:28px;padding:30px 28px;width:440px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.intro-box h1{font-family:var(--serif);font-style:italic;font-size:34px;color:var(--green);letter-spacing:-.02em;margin-bottom:8px;}
+.intro-box p{font-size:14px;color:var(--text);line-height:1.6;margin-bottom:18px;}
+.intro-keys{display:flex;justify-content:center;gap:18px;margin-bottom:22px;flex-wrap:wrap;}
+.intro-key{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:600;}
+.intro-key .ik{font-size:26px;}
+.intro-start{width:100%;padding:14px;border-radius:200px;border:none;background:var(--green);color:#fff;font-family:var(--font);font-size:16px;font-weight:700;cursor:pointer;transition:filter .15s;}
+.intro-start:hover{filter:brightness(1.07);}
+.intro-lang{margin-top:12px;font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:var(--font);text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="world">
+    <div id="world-bg"></div>
+    <svg id="paths"></svg>
+    <!-- features, plots, characters & player injected here -->
+    <div id="player">
+      <div id="player-emoji">🧑‍🌾<span id="player-carry"></span></div>
+      <div id="player-shadow"></div>
+      <div id="player-name">Jij</div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div id="clock" class="glass"><span class="dn" id="dn">☀️</span><strong id="clock-date">Week 1 · ma</strong><span id="clock-time">· 09:00</span></div>
+    <div class="hud-right">
+      <div id="coin-pill"><span>🪙</span><span id="coin-count">30</span></div>
+      <button class="hud-btn glass" id="btn-shop">🎒 <span id="lbl-shop">Winkel</span></button>
+      <button class="hud-btn glass" id="btn-lang">🌐 NL</button>
+    </div>
+  </div>
+
+  <div id="minimap"><canvas id="mm-canvas" width="300" height="212"></canvas><span id="mm-label">Buurt</span></div>
+
+  <div id="help">
+    <span class="kc">W</span><span class="kc">A</span><span class="kc">S</span><span class="kc">D</span> / <span class="kc">↑</span><span class="kc">↓</span><span class="kc">←</span><span class="kc">→</span> <span id="lbl-move">lopen</span><br>
+    <span class="kc">E</span> / <span class="kc">␣</span> <span id="lbl-talk">praten met buur in de buurt</span>
+  </div>
+
+  <div id="hint" class="glass"><span class="hi-ico">🚶</span><span id="hint-txt">Loop naar een buur toe om met ze te praten.</span></div>
+
+  <!-- touch controls -->
+  <div id="joy"><div id="joy-knob"></div></div>
+  <div id="act-btn"><span id="act-label">Praat</span></div>
+</div>
+
+<!-- INTERACTION SHEET -->
+<div id="sheet-scrim"></div>
+<div id="sheet">
+  <div class="sheet-grab"></div>
+  <div class="sheet-top">
+    <div class="st-emoji" id="st-emoji">🐉</div>
+    <div class="st-id">
+      <div class="st-name" id="st-name">—</div>
+      <div class="st-type" id="st-type">—</div>
+      <div class="st-pers" id="st-pers">—</div>
+    </div>
+    <button class="st-close" id="st-close">✕</button>
+  </div>
+  <div class="sheet-scroll">
+    <div class="st-status" id="st-status">—</div>
+    <div class="h-row"><div class="h-bar"><div class="h-fill" id="st-hfill"></div></div><div class="h-pct" id="st-hpct">—</div></div>
+
+    <div id="st-wish-sec" style="display:none">
+      <div class="sec-title" id="lbl-wish">Wens</div>
+      <div class="wish-banner" id="st-wish"></div>
+    </div>
+
+    <div class="sec-title" id="lbl-care">Geef aandacht <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert 🪙 op</span></div>
+    <div class="actions">
+      <button class="act primary" data-act="feed"><span class="ae">🍎</span><span id="lbl-feed">Voeren</span><span class="plus">+2🪙</span></button>
+      <button class="act" data-act="play"><span class="ae">🎮</span><span id="lbl-play">Spelen</span><span class="plus">+3🪙</span></button>
+      <button class="act" data-act="greet"><span class="ae">👋</span><span id="lbl-greet">Groeten</span><span class="plus">+1🪙</span></button>
+    </div>
+
+    <div class="sec-title" id="lbl-give">Geef een cadeau</div>
+    <div class="give-grid" id="give-grid"></div>
+
+    <div class="sec-title" id="lbl-who">Wie ze zijn</div>
+    <div class="st-bio" id="st-bio">—</div>
+    <div class="st-traits" id="st-traits"></div>
+
+    <div class="sec-title" id="lbl-treasures">Gekregen cadeaus</div>
+    <div class="treasure-row" id="st-treasures"></div>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div id="shop-modal" class="hidden">
+  <div class="shop-box">
+    <div class="shop-head">
+      <div class="shop-title" id="shop-title">De Buurtwinkel</div>
+      <div class="shop-coins">🪙 <span id="shop-coin-count">30</span></div>
+    </div>
+    <div class="shop-sub" id="shop-sub">Geef munten uit om je tas met cadeaus te vullen. Loop daarna naar een buur en geef ze iets.</div>
+    <div class="shop-grid" id="shop-grid"></div>
+    <button class="shop-close" id="shop-close">Klaar</button>
+  </div>
+</div>
+
+<!-- INTRO -->
+<div id="intro">
+  <div class="intro-box">
+    <h1 id="intro-title">De Buurt</h1>
+    <p id="intro-sub">Je woont in een buurt vol getekende personages. Loop rond, leer ze kennen en geef ze aandacht zodat ze gelukkig blijven.</p>
+    <div class="intro-keys">
+      <div class="intro-key"><span class="ik">🕹️</span><span id="intro-k1">WASD / pijltjes om te lopen</span></div>
+      <div class="intro-key"><span class="ik">🗣️</span><span id="intro-k2">E om te praten als je dichtbij bent</span></div>
+      <div class="intro-key"><span class="ik">🎁</span><span id="intro-k3">Geef cadeaus die ze leuk vinden</span></div>
+    </div>
+    <button class="intro-start" id="intro-start">Begin met lopen →</button><br>
+    <button class="intro-lang" id="intro-lang">Switch to English</button>
+  </div>
+</div>
+
+<script src="doodles.js"></script>
+<script>
+// ═══ LANGUAGE ═══════════════════════════════════════════════════════════
+let LANG = localStorage.getItem('nbhd-lang') || 'nl';
+// character + item + POI drawings from the shared doodles.js (window.doodleSVG)
+const ITEM_CAT={flower:'flower',apple:'apple',cookie:'cookie',balloon:'ice cream',book:'book',toy:'teddy-bear',hat:'hat',gem:'diamond'};
+const POI_CAT={square:'bench',pond:'duck',park:'tree'};
+function idoo(k){return doodleSVG(ITEM_CAT[k]);}
+
+const DAYS_TXT={ en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], nl:['ma','di','wo','do','vr','za','zo'] };
+
+const POI_BASE=[
+  {key:'square', x:50, y:48, r:120, emoji:'⛲', cls:'feat-square'},
+  {key:'pond',   x:78, y:26, r:108, emoji:'🦆', cls:'feat-pond'},
+  {key:'park',   x:22, y:74, r:132, emoji:'🌳', cls:'feat-park'},
+];
+const POI_NAME={ en:{square:'Town Square',pond:'The Pond',park:'The Park'},
+                 nl:{square:'Het Plein',pond:'De Vijver',park:'Het Park'} };
+
+const STYLE_BASE={
+  explorer:{spd:130, roam:0.72, homeR:340, pause:[1.5,4]},
+  bouncer: {spd:165, roam:0.60, homeR:300, pause:[1,3]},
+  prowler: {spd:105, roam:0.50, homeR:240, pause:[2,5]},
+  stroller:{spd:82,  roam:0.38, homeR:200, pause:[2.5,5.5]},
+  patroller:{spd:70, roam:0.20, homeR:120, pause:[3,7]},
+  ponderer:{spd:60,  roam:0.24, homeR:110, pause:[4,8]},
+  homebody:{spd:66,  roam:0.12, homeR:90,  pause:[4,9]},
+  drifter: {spd:48,  roam:0.16, homeR:110, pause:[4,9]},
+};
+
+const P_STRUCT={
+  adventurous:{badge:'🗺️',decay:11,style:'explorer'},
+  wise:       {badge:'📚',decay:7, style:'ponderer'},
+  gentle:     {badge:'🌿',decay:9, style:'stroller'},
+  mischievous:{badge:'😈',decay:14,style:'prowler'},
+  shy:        {badge:'🌱',decay:9, style:'homebody'},
+  playful:    {badge:'🎉',decay:18,style:'bouncer'},
+  dreamy:     {badge:'🌙',decay:5, style:'drifter'},
+  grumpy:     {badge:'😤',decay:11,style:'patroller'},
+};
+const P_TEXT={
+  en:{
+    adventurous:{label:'Adventurous',word:'roams the whole neighborhood',bio:'A born explorer who treats every fence as a dare. Comes home with rocks and calls them treasure.',traits:['Brave','Curious','Restless'],says:['Onward!','Found a treasure!','New record!','To the pond!']},
+    wise:{label:'Wise',word:'mostly stays home, thinking',bio:'Patient and thoughtful. Writes scrolls nobody asked for and leaves them on doorsteps anyway.',traits:['Patient','Thoughtful','Calm'],says:['Hmm, indeed.','Patience…','A fine morning.','Wisdom takes time.']},
+    gentle:{label:'Gentle',word:'takes gentle strolls',bio:'Sweet and easygoing. Waters every flower in sight, including the ones that were perfectly fine.',traits:['Kind','Easygoing','Warm'],says:['Hello there!','Lovely day!','For you!','*happy moo*']},
+    mischievous:{label:'Mischievous',word:'prowls the back paths',bio:'Up to something. Moves garden gnomes three inches to the left and denies all knowledge of it.',traits:['Sneaky','Playful','Clever'],says:['Heh heh…',"Wasn't me.",'Borrowing this.','*whistles*']},
+    shy:{label:'Shy',word:'rarely leaves the yard',bio:'Curious but bashful. Watches neighbors from behind a bush, waves when noticed, then hides again.',traits:['Bashful','Sweet','Careful'],says:['…hi.','*waves shyly*','Oh! Um…','*hides*']},
+    playful:{label:'Playful',word:'is always on the move',bio:'Pure energy. Ran 47 laps before breakfast and is already challenging someone to a rematch.',traits:['Energetic','Bouncy','Bold'],says:['Wheee!','Race you!','Again! Again!','Best of seven!']},
+    dreamy:{label:'Dreamy',word:'drifts slowly near home',bio:'Head in the clouds, literally. Found seven clouds today that looked like other clouds.',traits:['Daydreamer','Soft','Quiet'],says:['Oooh, pretty…','Floaty…','Look, a cloud.','Zzz…']},
+    grumpy:{label:'Grumpy',word:'patrols close to home',bio:'Grumpy but secretly soft. Complained about the lovely weather and rearranged a rock collection in protest.',traits:['Cranky','Loyal','Particular'],says:['Hmph.','Typical.','Not impressed.','Bah.']},
+  },
+  nl:{
+    adventurous:{label:'Avontuurlijk',word:'zwerft door de hele buurt',bio:'Een geboren ontdekkingsreiziger die elk hek als een uitdaging ziet. Komt thuis met stenen en noemt ze schatten.',traits:['Dapper','Nieuwsgierig','Rusteloos'],says:['Voorwaarts!','Schat gevonden!','Nieuw record!','Naar de vijver!']},
+    wise:{label:'Wijs',word:'blijft meestal thuis, peinzend',bio:'Geduldig en bedachtzaam. Schrijft perkamenten die niemand vroeg en legt ze toch op de stoep.',traits:['Geduldig','Bedachtzaam','Kalm'],says:['Hmm, inderdaad.','Geduld…','Een mooie ochtend.','Wijsheid kost tijd.']},
+    gentle:{label:'Zachtaardig',word:'maakt rustige wandelingen',bio:'Lief en makkelijk in de omgang. Geeft elke bloem in zicht water, ook die het prima deden.',traits:['Vriendelijk','Ontspannen','Warm'],says:['Hallo daar!','Heerlijke dag!','Voor jou!','*blij geboe*']},
+    mischievous:{label:'Ondeugend',word:'sluipt over de achterpaadjes',bio:'Heeft iets in de zin. Verschuift tuinkabouters drie centimeter naar links en ontkent alles.',traits:['Stiekem','Speels','Slim'],says:['Hehe…','Was ik niet.','Even lenen.','*fluit*']},
+    shy:{label:'Verlegen',word:'komt zelden de tuin uit',bio:'Nieuwsgierig maar verlegen. Bekijkt buren vanachter een struik, zwaait als ze gezien wordt en verstopt zich weer.',traits:['Verlegen','Lief','Voorzichtig'],says:['…hoi.','*zwaait verlegen*','Oh! Eh…','*verstopt zich*']},
+    playful:{label:'Speels',word:'is altijd in beweging',bio:'Pure energie. Rende 47 rondjes voor het ontbijt en daagt nu al iemand uit voor een rematch.',traits:['Energiek','Stuiterend','Gedurfd'],says:['Joepie!','Wie het eerst!','Nog een keer!','Best of seven!']},
+    dreamy:{label:'Dromerig',word:'zweeft langzaam dicht bij huis',bio:'Met het hoofd in de wolken, letterlijk. Vond vandaag zeven wolken die op andere wolken leken.',traits:['Dagdromer','Zacht','Stil'],says:['Oooh, mooi…','Zweverig…','Kijk, een wolk.','Zzz…']},
+    grumpy:{label:'Chagrijnig',word:'blijft dicht bij huis',bio:'Chagrijnig maar stiekem zacht. Klaagde over het mooie weer en herschikte uit protest een stenenverzameling.',traits:['Knorrig','Trouw','Eigenwijs'],says:['Hmpf.','Typisch.','Niet onder de indruk.','Bah.']},
+  },
+};
+
+const ITEM_BASE={
+  flower:{emoji:'🌻',cost:4}, apple:{emoji:'🍎',cost:4}, cookie:{emoji:'🍪',cost:5}, balloon:{emoji:'🍦',cost:6},
+  book:{emoji:'📖',cost:6}, toy:{emoji:'🧸',cost:7}, hat:{emoji:'🎩',cost:8}, gem:{emoji:'💎',cost:12},
+};
+const ITEM_NAME={
+  en:{flower:'Flower',apple:'Apple',cookie:'Cookie',balloon:'Ice cream',book:'Book',toy:'Teddy',hat:'Hat',gem:'Gem'},
+  nl:{flower:'Bloem',apple:'Appel',cookie:'Koekje',balloon:'IJsje',book:'Boek',toy:'Knuffel',hat:'Hoed',gem:'Edelsteen'},
+};
+const ITEM_KEYS=Object.keys(ITEM_BASE);
+const TYPE_TXT={nl:{Dragon:'Draak',Owl:'Uil',Cow:'Koe',Monkey:'Aap',Mermaid:'Zeemeermin',Rabbit:'Konijn',Cloud:'Wolk',Cactus:'Cactus'}};
+const PREF={
+  adventurous:{loves:['gem'],        likes:['hat','book']},
+  wise:       {loves:['book'],       likes:['gem']},
+  gentle:     {loves:['flower'],     likes:['cookie','apple']},
+  mischievous:{loves:['hat'],        likes:['toy','balloon']},
+  shy:        {loves:['flower'],     likes:['book']},
+  playful:    {loves:['balloon','toy'],likes:['cookie']},
+  dreamy:     {loves:['balloon'],    likes:['flower','gem']},
+  grumpy:     {loves:['cookie'],     likes:['apple']},
+};
+const GIFT_BASE={love:{h:28,coins:12,react:'💖'}, like:{h:16,coins:6,react:'😊'}, neutral:{h:8,coins:2,react:'🙂'}};
+
+// UI strings
+const STR={
+  en:{
+    you:'You', shop:'Shop', move:'walk', talk:'talk to a nearby neighbor',
+    hintWalk:'Walk up to a neighbor to talk with them.',
+    hintNear:(n)=>`You're next to <b>${n}</b> — press <b>E</b> to talk.`,
+    hintWish:(n,it)=>`<b>${n}</b> is wishing for a ${it}. Bring it to them!`,
+    talkBtn:'Talk', closeWish:'Wish', care:'Give attention', giveT:'Give a gift',
+    who:'Who they are', treasures:'Gifts they\'ve been given', feed:'Feed', play:'Play', greet:'Greet',
+    sAsleep:'💤 Fast asleep at home.', sWalking:(w)=>`🚶 Wandering toward ${w}.`, sPausing:'🧍 Taking a little break.',
+    placeHome:'home', placeYard:'the yard', placeNearby:'somewhere nearby', placeWander:'across the neighborhood',
+    treasureEmpty:'No gifts yet — give them something they\'ll love.',
+    weekDow:(w,d)=>`Week ${w} · ${d}`, dType:(t,w)=>`${t} · ${w}`,
+    sayLove:'I love it!!', sayLike:'Thank you!', sayMeh:'Oh, thanks.', sayHi:'Hello!',
+    wishWant:(it)=>`They'd <b>love</b> a ${it} right now.`, wishReward:'Fulfilling a wish: bonus 🪙 + a big happiness boost.',
+    shopTitle:'The Corner Shop', shopSub:'Spend coins to stock your bag with gifts. Then walk to a neighbor and give them one.',
+    shopOwn:'In bag: ', shopDone:'Done',
+    introTitle:'The Neighborhood', introSub:'You live in a neighborhood full of drawn characters. Walk around, get to know them, and give them attention so they stay happy.',
+    introK1:'WASD / arrows to walk', introK2:'E to talk when you\'re close', introK3:'Give gifts they like',
+    introStart:'Start walking →', introLang:'Schakel naar Nederlands',
+    minimap:'Neighborhood',
+  },
+  nl:{
+    you:'Jij', shop:'Winkel', move:'lopen', talk:'praten met buur in de buurt',
+    hintWalk:'Loop naar een buur toe om met ze te praten.',
+    hintNear:(n)=>`Je staat naast <b>${n}</b> — druk op <b>E</b> om te praten.`,
+    hintWish:(n,it)=>`<b>${n}</b> wenst een ${it}. Breng het naar ze toe!`,
+    talkBtn:'Praat', closeWish:'Wens', care:'Geef aandacht', giveT:'Geef een cadeau',
+    who:'Wie ze zijn', treasures:'Gekregen cadeaus', feed:'Voeren', play:'Spelen', greet:'Groeten',
+    sAsleep:'💤 Diep in slaap thuis.', sWalking:(w)=>`🚶 Op weg naar ${w}.`, sPausing:'🧍 Even pauze.',
+    placeHome:'huis', placeYard:'de tuin', placeNearby:'ergens dichtbij', placeWander:'de buurt door',
+    treasureEmpty:'Nog geen cadeaus — geef ze iets wat ze geweldig vinden.',
+    weekDow:(w,d)=>`Week ${w} · ${d}`, dType:(t,w)=>`${t} · ${w}`,
+    sayLove:'Ik vind het geweldig!!', sayLike:'Dank je wel!', sayMeh:'Oh, bedankt.', sayHi:'Hallo!',
+    wishWant:(it)=>`Ze zouden nu <b>dolblij</b> zijn met een ${it}.`, wishReward:'Een wens vervullen: bonus 🪙 + flinke blijdschap-boost.',
+    shopTitle:'De Buurtwinkel', shopSub:'Geef munten uit om je tas met cadeaus te vullen. Loop daarna naar een buur en geef ze iets.',
+    shopOwn:'In tas: ', shopDone:'Klaar',
+    introTitle:'De Buurt', introSub:'Je woont in een buurt vol getekende personages. Loop rond, leer ze kennen en geef ze aandacht zodat ze gelukkig blijven.',
+    introK1:'WASD / pijltjes om te lopen', introK2:'E om te praten als je dichtbij bent', introK3:'Geef cadeaus die ze leuk vinden',
+    introStart:'Begin met lopen →', introLang:'Switch to English',
+    minimap:'Buurt',
+  },
+};
+const T=()=>STR[LANG];
+function poiName(key){return POI_NAME[LANG][key];}
+function itemName(k){return ITEM_NAME[LANG][k];}
+function typeName(t){return (LANG==='nl'&&TYPE_TXT.nl[t])||t;}
+function prefOf(pers,itemKey){const p=PREF[pers];if(p.loves.includes(itemKey))return'love';if(p.likes.includes(itemKey))return'like';return'neutral';}
+
+// ═══ WORLD ══════════════════════════════════════════════════════════════
+const WORLD_W=2400, WORLD_H=1700;
+const HOMES_PCT=[ [20,22],[40,18],[62,16],[84,46],[14,48],[36,40],[66,64],[50,82] ];
+function pcx(p){return p/100*WORLD_W;} function pcy(p){return p/100*WORLD_H;}
+
+const POI=POI_BASE.map(p=>({...p, px:pcx(p.x), py:pcy(p.y)}));
+
+const CCOL=['#B7E4C7','#FFD6E8','#FFF570','#A3DAF5','#FFCBA4','#D9B8F5','#F5E6D3','#C8E6C9'];
+let chars=[
+  {name:'Flamble', type:'Dragon',  cat:'dragon', pers:'adventurous',emoji:'🐉',h:95},
+  {name:'Old Murp',type:'Owl',     cat:'owl',    pers:'wise',       emoji:'🦉',h:88},
+  {name:'Bessie',  type:'Cow',     cat:'cow',    pers:'gentle',     emoji:'🐮',h:83},
+  {name:'Mojo',    type:'Monkey',  cat:'monkey', pers:'mischievous',emoji:'🐵',h:71},
+  {name:'Pip',     type:'Mermaid', cat:'mermaid',pers:'shy',        emoji:'🧜',h:91},
+  {name:'Hop',     type:'Rabbit',  cat:'rabbit', pers:'playful',    emoji:'🐰',h:59},
+  {name:'Floaty',  type:'Cloud',   cat:'cloud',  pers:'dreamy',     emoji:'☁️',h:99},
+  {name:'Gerald',  type:'Cactus',  cat:'cactus', pers:'grumpy',     emoji:'🌵',h:53},
+].map((c,i)=>{
+  const hx=pcx(HOMES_PCT[i][0]), hy=pcy(HOMES_PCT[i][1]);
+  return {...c,id:i+1,color:CCOL[i],homeX:hx,homeY:hy,x:hx,y:hy,tx:hx,ty:hy,
+    state:'idle',pauseLeft:1+Math.random()*2,dest:null,sayT:0,treasures:{},wish:null};
+});
+
+// player
+const player={x:pcx(50), y:pcy(58), vx:0, vy:0, speed:340};
+let coins=30;
+let bag={flower:3,apple:3,cookie:2,balloon:2,book:2,toy:1,hat:1,gem:0};
+
+// time
+let simHour=9, simDay=1;
+const TIME_SCALE=0.10;   // sim-hours per real second  → full day ≈ 240s
+function isNight(){return simHour>=20||simHour<7;}
+
+// camera
+let cam={x:0,y:0};
+let focusedId=null, openId=null;
+let running=false;
+
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const dist=(ax,ay,bx,by)=>Math.hypot(ax-bx,ay-by);
+const INTERACT_R=150;
+
+// ═══ BUILD WORLD DOM ════════════════════════════════════════════════════
+const viewport=document.getElementById('viewport');
+const worldEl=document.getElementById('world');
+const playerEl=document.getElementById('player');
+worldEl.style.width=WORLD_W+'px'; worldEl.style.height=WORLD_H+'px';
+
+function buildWorld(){
+  // paths
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.getElementById('paths');
+  svg.setAttribute('width',WORLD_W); svg.setAttribute('height',WORLD_H);
+  svg.innerHTML='';
+  const sq=POI[0];
+  chars.forEach(c=>{
+    const l=document.createElementNS(svgNS,'line');
+    l.setAttribute('x1',sq.px);l.setAttribute('y1',sq.py);l.setAttribute('x2',c.homeX);l.setAttribute('y2',c.homeY);
+    l.setAttribute('stroke','rgba(231,221,201,0.85)');l.setAttribute('stroke-width','34');l.setAttribute('stroke-linecap','round');
+    svg.appendChild(l);
+  });
+  POI.slice(1).forEach(p=>{
+    const l=document.createElementNS(svgNS,'line');
+    l.setAttribute('x1',sq.px);l.setAttribute('y1',sq.py);l.setAttribute('x2',p.px);l.setAttribute('y2',p.py);
+    l.setAttribute('stroke','rgba(231,221,201,0.85)');l.setAttribute('stroke-width','34');l.setAttribute('stroke-linecap','round');
+    svg.appendChild(l);
+  });
+
+  // remove old feats/plots/chars (keep bg, paths, player)
+  worldEl.querySelectorAll('.feat,.plot,.ch').forEach(n=>n.remove());
+
+  POI.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='feat '+p.cls;
+    d.style.left=p.px+'px';d.style.top=p.py+'px';
+    d.style.width=(p.r*2)+'px';d.style.height=(p.r*2*0.82)+'px';
+    d.innerHTML=`<span class="feat-emoji">${doodleSVG(POI_CAT[p.key])}</span><span class="feat-label">${poiName(p.key)}</span>`;
+    worldEl.insertBefore(d, playerEl);
+  });
+  chars.forEach(c=>{
+    const d=document.createElement('div');
+    d.className='plot';
+    d.style.left=c.homeX+'px';d.style.top=c.homeY+'px';
+    d.innerHTML=`<span class="plot-house">${doodleSVG('house')}</span><span class="plot-label">${typeName(c.type)}</span>`;
+    worldEl.insertBefore(d, playerEl);
+  });
+  chars.forEach(c=>{
+    const el=document.createElement('div');
+    el.className='ch';el.dataset.id=c.id;
+    el.innerHTML=`<div class="ch-ring"></div>
+      <div class="ch-say" id="say-${c.id}"></div>
+      <div class="ch-wish" id="wish-${c.id}" style="display:none"></div>
+      <div class="ch-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="ch-mood" id="mood-${c.id}"></span></div>
+      <div class="ch-name">${c.name}</div>
+      <div class="ch-prompt" id="prompt-${c.id}"><span class="key-cap">E</span><span id="ptxt-${c.id}">${T().talkBtn}</span></div>`;
+    el.style.transform=`translate(-50%,-50%)`;
+    el.style.left=c.x+'px';el.style.top=c.y+'px';
+    el.addEventListener('click',()=>{ if(focusedId===c.id) openSheet(c.id); });
+    el.querySelector('.ch-prompt').addEventListener('click',(e)=>{e.stopPropagation();openSheet(c.id);});
+    worldEl.insertBefore(el, playerEl);
+    c.el=el;
+  });
+  document.getElementById('player-name').textContent=T().you;
+}
+
+// ═══ NPC AI ═════════════════════════════════════════════════════════════
+function chooseDest(c){
+  const st=STYLE_BASE[P_STRUCT[c.pers].style];
+  if(isNight()) return {x:c.homeX,y:c.homeY,place:'home',sleep:true};
+  if(Math.random()<st.roam){
+    if(Math.random()<0.6){const p=pick(POI);return {x:p.px+rnd(-90,90),y:p.py+rnd(-90,90),place:p.key};}
+    return {x:rnd(140,WORLD_W-140),y:rnd(140,WORLD_H-140),place:'wander'};
+  }
+  const ang=Math.random()*Math.PI*2, d=rnd(0,st.homeR);
+  let nx=c.homeX+Math.cos(ang)*d, ny=c.homeY+Math.sin(ang)*d;
+  nx=Math.max(120,Math.min(WORLD_W-120,nx));ny=Math.max(120,Math.min(WORLD_H-120,ny));
+  const near=Math.abs(nx-c.homeX)<160&&Math.abs(ny-c.homeY)<160;
+  return {x:nx,y:ny,place:near?'yard':'nearby'};
+}
+function newDecision(c){
+  const dest=chooseDest(c); c.dest=dest; c.tx=dest.x; c.ty=dest.y; c.state='moving';
+}
+function arrive(c){
+  const st=STYLE_BASE[P_STRUCT[c.pers].style];
+  if(c.dest&&c.dest.sleep){c.state='asleep';c.pauseLeft=999;return;}
+  c.state='idle'; c.pauseLeft=rnd(st.pause[0],st.pause[1]);
+  if(Math.random()<0.45) say(c,pick(P_TEXT[LANG][c.pers].says));
+  if(Math.random()<0.06){earn(1,c);react(c,'🪙');}
+  maybeWish(c);
+}
+function maybeWish(c){
+  if(c.wish) return;
+  if(c.h>60) return;                 // only wish when they could use a boost
+  if(Math.random()>=0.18) return;
+  const pool=[...PREF[c.pers].loves];
+  c.wish=pick(pool);
+  say(c, LANG==='nl'?'Ik wens iets…':'I wish for something…');
+}
+
+// ═══ SIM STEP ═══════════════════════════════════════════════════════════
+function step(dt){
+  // time
+  simHour+=dt*TIME_SCALE;
+  while(simHour>=24){simHour-=24;simDay++;}
+  const night=isNight();
+
+  // player movement
+  let mvx=player.vx, mvy=player.vy;
+  const m=Math.hypot(mvx,mvy);
+  if(m>0){mvx/=m;mvy/=m;
+    player.x+=mvx*player.speed*dt; player.y+=mvy*player.speed*dt;
+    player.x=Math.max(40,Math.min(WORLD_W-40,player.x));
+    player.y=Math.max(40,Math.min(WORLD_H-40,player.y));
+    playerEl.classList.add('walk');
+    document.getElementById('player-emoji').style.transform=mvx<-0.05?'scaleX(-1)':mvx>0.05?'scaleX(1)':'';
+  } else playerEl.classList.remove('walk');
+
+  // npcs
+  chars.forEach(c=>{
+    if(c.state==='asleep'&&!night){c.state='idle';c.pauseLeft=0;}
+    if(c.state==='idle'){c.pauseLeft-=dt; if(c.pauseLeft<=0) newDecision(c);}
+    if(c.state==='moving'){
+      const st=STYLE_BASE[P_STRUCT[c.pers].style];
+      const sp=st.spd*dt, dx=c.tx-c.x, dy=c.ty-c.y, d=Math.hypot(dx,dy);
+      if(d<=sp){c.x=c.tx;c.y=c.ty;arrive(c);}
+      else{c.x+=dx/d*sp;c.y+=dy/d*sp;}
+    }
+    if(!night&&c.state!=='asleep') c.h=Math.max(0,c.h-P_STRUCT[c.pers].decay*(dt*TIME_SCALE/24));
+    if(c.sayT>0){c.sayT-=dt; if(c.sayT<=0) document.getElementById('say-'+c.id)?.classList.remove('show');}
+  });
+
+  // proximity → focus nearest reachable char (awake)
+  let best=null,bestD=INTERACT_R;
+  chars.forEach(c=>{
+    const d=dist(player.x,player.y,c.x,c.y);
+    if(d<bestD){bestD=d;best=c;}
+  });
+  setFocus(best?best.id:null);
+}
+
+function setFocus(id){
+  if(focusedId===id) return;
+  if(focusedId!=null){const e=chars.find(c=>c.id===focusedId);e&&e.el&&e.el.classList.remove('focus');}
+  focusedId=id;
+  if(id!=null){const e=chars.find(c=>c.id===id);e&&e.el&&e.el.classList.add('focus');}
+  updateHint();
+  document.getElementById('act-btn').classList.toggle('show', id!=null);
+}
+
+// ═══ RENDER ═════════════════════════════════════════════════════════════
+function moodFor(c){if(c.state==='asleep')return'💤';if(c.h>=80)return'✨';if(c.h>=55)return'';if(c.h>=30)return'🥱';return'😢';}
+function hColor(h){return h>=70?'#74C69D':h>=40?'#D4C84A':h>=15?'#F4A261':'#E06060';}
+
+function render(){
+  // camera follows player, clamped
+  const vw=window.innerWidth, vh=window.innerHeight;
+  cam.x=Math.max(0,Math.min(WORLD_W-vw, player.x-vw/2));
+  cam.y=Math.max(0,Math.min(WORLD_H-vh, player.y-vh/2));
+  if(WORLD_W<vw) cam.x=(WORLD_W-vw)/2;
+  if(WORLD_H<vh) cam.y=(WORLD_H-vh)/2;
+  worldEl.style.transform=`translate(${-cam.x}px,${-cam.y}px)`;
+  playerEl.style.left=player.x+'px'; playerEl.style.top=player.y+'px';
+
+  chars.forEach(c=>{
+    if(!c.el)return;
+    c.el.style.left=c.x+'px'; c.el.style.top=c.y+'px';
+    c.el.classList.toggle('moving',c.state==='moving');
+    c.el.classList.toggle('asleep',c.state==='asleep');
+    const mo=document.getElementById('mood-'+c.id); if(mo)mo.textContent=moodFor(c);
+    const w=document.getElementById('wish-'+c.id);
+    if(w){
+      if(c.wish&&c.state!=='asleep'){w.style.display='flex';w.innerHTML=`<span class="we">💭</span><span class="we-doodle">${idoo(c.wish)}</span>`;}
+      else w.style.display='none';
+    }
+  });
+  viewport.classList.toggle('night',isNight());
+
+  // carry indicator (currently none — gifts given directly), kept for future
+  renderMinimap();
+}
+
+function renderClock(){
+  const week=Math.floor((simDay-1)/7)+1, dow=DAYS_TXT[LANG][(simDay-1)%7];
+  const h=String(Math.floor(simHour)).padStart(2,'0');
+  const mm=String(Math.floor((simHour%1)*60)).padStart(2,'0');
+  document.getElementById('clock-date').textContent=T().weekDow(week,dow);
+  document.getElementById('clock-time').textContent=`· ${h}:${mm}`;
+  document.getElementById('dn').textContent=isNight()?'🌙':'☀️';
+}
+
+const mmCanvas=document.getElementById('mm-canvas'), mmCtx=mmCanvas.getContext('2d');
+function renderMinimap(){
+  const W=mmCanvas.width, H=mmCanvas.height;
+  mmCtx.clearRect(0,0,W,H);
+  const sx=W/WORLD_W, sy=H/WORLD_H;
+  // pois
+  POI.forEach(p=>{mmCtx.fillStyle='rgba(255,255,255,.22)';mmCtx.beginPath();mmCtx.arc(p.px*sx,p.py*sy,p.r*sx,0,7);mmCtx.fill();});
+  // homes
+  mmCtx.fillStyle='rgba(234,217,184,.6)';
+  chars.forEach(c=>{mmCtx.fillRect(c.homeX*sx-3,c.homeY*sy-3,6,6);});
+  // chars
+  chars.forEach(c=>{
+    mmCtx.fillStyle=c.state==='asleep'?'rgba(255,255,255,.35)':hColor(c.h);
+    mmCtx.beginPath();mmCtx.arc(c.x*sx,c.y*sy,c.wish?5:4,0,7);mmCtx.fill();
+    if(c.wish){mmCtx.strokeStyle='#caa024';mmCtx.lineWidth=1.5;mmCtx.stroke();}
+  });
+  // player
+  mmCtx.fillStyle='#2D6A4F';mmCtx.strokeStyle='#fff';mmCtx.lineWidth=2;
+  mmCtx.beginPath();mmCtx.arc(player.x*sx,player.y*sy,5,0,7);mmCtx.fill();mmCtx.stroke();
+}
+
+function updateHint(){
+  const hint=document.getElementById('hint'), txt=document.getElementById('hint-txt');
+  if(openId!=null){hint.style.opacity='0';return;}
+  hint.style.opacity='1';
+  if(focusedId!=null){
+    const c=chars.find(x=>x.id===focusedId);
+    if(c.wish) txt.innerHTML=T().hintWish(c.name, itemName(c.wish));
+    else txt.innerHTML=T().hintNear(c.name);
+  } else txt.innerHTML=T().hintWalk;
+}
+
+// ═══ INTERACTION SHEET ══════════════════════════════════════════════════
+function openSheet(id){
+  const c=chars.find(x=>x.id===id); if(!c)return;
+  if(c.state==='asleep'){c.state='idle';c.pauseLeft=0;}
+  openId=id;
+  document.getElementById('sheet-scrim').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+  renderSheet();
+  updateHint();
+}
+function closeSheet(){
+  openId=null;
+  document.getElementById('sheet-scrim').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+  updateHint();
+}
+function renderSheet(){
+  const c=chars.find(x=>x.id===openId); if(!c)return;
+  const def=P_TEXT[LANG][c.pers], ps=P_STRUCT[c.pers];
+  const stE=document.getElementById('st-emoji');stE.innerHTML=doodleSVG(c.cat);stE.style.setProperty('--c',c.color);
+  document.getElementById('st-name').textContent=c.name;
+  document.getElementById('st-type').textContent=T().dType(typeName(c.type),def.word);
+  document.getElementById('st-pers').textContent=ps.badge+' '+def.label;
+  // status
+  let status;
+  if(c.state==='asleep') status=T().sAsleep;
+  else if(c.state==='moving'){const p=(c.dest||{}).place;
+    const where=p==='home'?T().placeHome:p==='yard'?T().placeYard:p==='nearby'?T().placeNearby:p==='wander'?T().placeWander:poiName(p);
+    status=T().sWalking(where);}
+  else status=T().sPausing;
+  document.getElementById('st-status').innerHTML=status;
+  const hp=Math.round(c.h);
+  document.getElementById('st-hfill').style.cssText=`width:${hp}%;background:${hColor(c.h)}`;
+  document.getElementById('st-hpct').textContent=hp+'%';
+  // wish
+  const ws=document.getElementById('st-wish-sec'), wb=document.getElementById('st-wish');
+  if(c.wish){ws.style.display='block';
+    wb.innerHTML=`<span class="wb-emoji">${idoo(c.wish)}</span><div class="wb-txt">${T().wishWant(itemName(c.wish))}<br><span class="wb-reward">${T().wishReward}</span></div>`;
+  } else ws.style.display='none';
+  // bio
+  document.getElementById('st-bio').textContent=def.bio;
+  document.getElementById('st-traits').innerHTML=def.traits.map(t=>`<span class="trait">${t}</span>`).join('');
+  // give grid
+  document.getElementById('give-grid').innerHTML=ITEM_KEYS.map(k=>{
+    const n=bag[k]||0, pr=prefOf(c.pers,k), heart=pr==='love'?'💚':pr==='like'?'🙂':'';
+    return `<div class="item-chip${n<=0?' empty':''}" data-give="${k}">
+      ${heart?`<span class="ic-pref">${heart}</span>`:''}<span class="ic-count">${n}</span>
+      <div class="ic-emoji">${idoo(k)}</div><div class="ic-name">${itemName(k)}</div></div>`;
+  }).join('');
+  // treasures
+  const keys=Object.keys(c.treasures).filter(k=>c.treasures[k]>0);
+  document.getElementById('st-treasures').innerHTML=keys.length
+    ? keys.map(k=>`<span class="treasure"><span class="tdood">${idoo(k)}</span><span class="tc">${c.treasures[k]}</span></span>`).join('')
+    : `<span class="treasure-empty">${T().treasureEmpty}</span>`;
+}
+
+function careAction(act){
+  const c=chars.find(x=>x.id===openId); if(!c)return;
+  let amt=0,cn=0;
+  if(act==='feed'){amt=25;cn=2;}
+  if(act==='play'){amt=20;cn=3;}
+  if(act==='greet'){amt=8;cn=1;say(c,pick(P_TEXT[LANG][c.pers].says));}
+  c.h=Math.min(100,c.h+amt); earn(cn,c); react(c,'💚');
+  renderSheet();
+}
+function giveGift(itemKey){
+  const c=chars.find(x=>x.id===openId); if(!c)return;
+  if(!bag[itemKey]||bag[itemKey]<=0) return;
+  bag[itemKey]--;
+  const pr=prefOf(c.pers,itemKey); let fx={...GIFT_BASE[pr]};
+  let fulfilled=false;
+  if(c.wish===itemKey){ fx={h:fx.h+14,coins:fx.coins+14,react:'🌟'}; c.wish=null; fulfilled=true; }
+  c.h=Math.min(100,c.h+fx.h);
+  c.treasures[itemKey]=(c.treasures[itemKey]||0)+1;
+  earn(fx.coins,c); react(c,fx.react);
+  say(c, pr==='love'||fulfilled?T().sayLove:pr==='like'?T().sayLike:T().sayMeh);
+  if(pr==='love'||fulfilled) confetti(c);
+  renderSheet(); updateCoinUI(); updateHint();
+}
+
+// ═══ COINS / FX ═════════════════════════════════════════════════════════
+function earn(amount,c){coins+=amount;updateCoinUI();if(c)coinBurst(c,amount);}
+function updateCoinUI(){
+  document.getElementById('coin-count').textContent=coins;
+  const sc=document.getElementById('shop-coin-count');if(sc)sc.textContent=coins;
+  const pill=document.getElementById('coin-pill');
+  pill.classList.remove('pop');void pill.offsetWidth;pill.classList.add('pop');
+  setTimeout(()=>pill.classList.remove('pop'),200);
+}
+function fxAt(c){return c.el;}
+function coinBurst(c,a){const fx=document.createElement('div');fx.className='coin-fx';fx.textContent='+'+a+' 🪙';fx.style.left=c.x+'px';fx.style.top=(c.y-40)+'px';worldEl.appendChild(fx);setTimeout(()=>fx.remove(),1100);}
+function react(c,e){const fx=document.createElement('div');fx.className='react-fx';fx.textContent=e;fx.style.left=c.x+'px';fx.style.top=(c.y-34)+'px';worldEl.appendChild(fx);setTimeout(()=>fx.remove(),1300);}
+function confetti(c){const colors=['#FFD93D','#74C69D','#FF6B6B','#6BA6FF','#F4A261','#C77DFF'];for(let i=0;i<16;i++){const p=document.createElement('div');p.className='confetti';p.style.left=c.x+'px';p.style.top=(c.y-20)+'px';p.style.background=colors[i%colors.length];p.style.setProperty('--cx',rnd(-60,60).toFixed(0)+'px');p.style.setProperty('--cr',rnd(-260,260).toFixed(0)+'deg');p.style.animationDelay=(i*0.01)+'s';worldEl.appendChild(p);setTimeout(()=>p.remove(),1050);}}
+function say(c,text){const b=document.getElementById('say-'+c.id);if(b){b.textContent=text;b.classList.add('show');c.sayT=2.6;}}
+
+// ═══ SHOP ═══════════════════════════════════════════════════════════════
+function renderShop(){
+  const sc=document.getElementById('shop-coin-count');if(sc)sc.textContent=coins;
+  document.getElementById('shop-grid').innerHTML=ITEM_KEYS.map(k=>{
+    const own=bag[k]||0, afford=coins>=ITEM_BASE[k].cost;
+    return `<div class="shop-item"><span class="si-emoji">${idoo(k)}</span>
+      <div class="si-info"><div class="si-name">${itemName(k)}</div><div class="si-own">${T().shopOwn}${own}</div></div>
+      <button class="si-buy" data-buy="${k}" ${afford?'':'disabled'}>🪙 ${ITEM_BASE[k].cost}</button></div>`;
+  }).join('');
+}
+function buyItem(k){
+  if(coins<ITEM_BASE[k].cost) return;
+  coins-=ITEM_BASE[k].cost; bag[k]=(bag[k]||0)+1;
+  updateCoinUI(); renderShop();
+  if(openId!=null) renderSheet();
+}
+
+// ═══ STATIC STRINGS ═════════════════════════════════════════════════════
+function applyStrings(){
+  const s=T();
+  document.documentElement.lang=LANG;
+  document.getElementById('btn-lang').textContent='🌐 '+LANG.toUpperCase();
+  document.getElementById('lbl-shop').textContent=s.shop;
+  document.getElementById('lbl-move').textContent=s.move;
+  document.getElementById('lbl-talk').textContent=s.talk;
+  document.getElementById('lbl-care').innerHTML=`${s.care} <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert 🪙 op</span>`;
+  document.getElementById('lbl-give').textContent=s.giveT;
+  document.getElementById('lbl-who').textContent=s.who;
+  document.getElementById('lbl-treasures').textContent=s.treasures;
+  document.getElementById('lbl-wish').textContent=s.closeWish;
+  document.getElementById('lbl-feed').textContent=s.feed;
+  document.getElementById('lbl-play').textContent=s.play;
+  document.getElementById('lbl-greet').textContent=s.greet;
+  document.getElementById('shop-title').textContent=s.shopTitle;
+  document.getElementById('shop-sub').textContent=s.shopSub;
+  document.getElementById('shop-close').textContent=s.shopDone;
+  document.getElementById('act-label').textContent=s.talkBtn;
+  document.getElementById('mm-label').textContent=s.minimap;
+  document.getElementById('intro-title').textContent=s.introTitle;
+  document.getElementById('intro-sub').textContent=s.introSub;
+  document.getElementById('intro-k1').textContent=s.introK1;
+  document.getElementById('intro-k2').textContent=s.introK2;
+  document.getElementById('intro-k3').textContent=s.introK3;
+  document.getElementById('intro-start').textContent=s.introStart;
+  document.getElementById('intro-lang').textContent=s.introLang;
+  chars.forEach(c=>{const pt=document.getElementById('ptxt-'+c.id);if(pt)pt.textContent=s.talkBtn;});
+  document.getElementById('player-name').textContent=s.you;
+}
+function switchLang(l){
+  if(l===LANG)return;
+  LANG=l; try{localStorage.setItem('nbhd-lang',l);}catch(e){}
+  buildWorld(); applyStrings(); renderClock(); updateHint();
+  if(openId!=null) renderSheet();
+}
+
+// ═══ INPUT ══════════════════════════════════════════════════════════════
+const keys={};
+function updateVel(){
+  let vx=0,vy=0;
+  if(keys['w']||keys['arrowup'])vy-=1;
+  if(keys['s']||keys['arrowdown'])vy+=1;
+  if(keys['a']||keys['arrowleft'])vx-=1;
+  if(keys['d']||keys['arrowright'])vx+=1;
+  // joystick overrides if active
+  if(joyActive){vx=joyVec.x;vy=joyVec.y;}
+  player.vx=vx;player.vy=vy;
+}
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
+  if(k===' '||k==='e'){
+    if(openId!=null){/* keep open */}
+    else if(focusedId!=null) openSheet(focusedId);
+    return;
+  }
+  if(k==='escape'){ if(openId!=null) closeSheet(); return; }
+  keys[k===' '?'space':k]=true; updateVel();
+});
+window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=false;updateVel();});
+window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false;updateVel();});
+
+// joystick
+let joyActive=false, joyVec={x:0,y:0}, joyId=null;
+const joy=document.getElementById('joy'), knob=document.getElementById('joy-knob');
+function joyStart(e){const t=e.changedTouches?e.changedTouches[0]:e;joyId=t.identifier??'mouse';joyActive=true;joyMove(e);}
+function joyMove(e){
+  if(!joyActive)return;
+  let t=e;
+  if(e.changedTouches){t=[...e.changedTouches].find(x=>x.identifier===joyId)||e.changedTouches[0];}
+  const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let dx=t.clientX-cx,dy=t.clientY-cy;const mag=Math.hypot(dx,dy),max=r.width/2;
+  if(mag>max){dx=dx/mag*max;dy=dy/mag*max;}
+  knob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+  joyVec={x:dx/max,y:dy/max};updateVel();
+}
+function joyEnd(){joyActive=false;joyVec={x:0,y:0};knob.style.transform='translate(-50%,-50%)';updateVel();}
+joy.addEventListener('touchstart',e=>{e.preventDefault();joyStart(e);},{passive:false});
+joy.addEventListener('touchmove',e=>{e.preventDefault();joyMove(e);},{passive:false});
+joy.addEventListener('touchend',e=>{e.preventDefault();joyEnd();},{passive:false});
+joy.addEventListener('mousedown',joyStart);
+window.addEventListener('mousemove',e=>{if(joyActive&&joyId==='mouse')joyMove(e);});
+window.addEventListener('mouseup',()=>{if(joyId==='mouse')joyEnd();});
+
+document.getElementById('act-btn').addEventListener('click',()=>{if(focusedId!=null)openSheet(focusedId);});
+
+// sheet wiring
+document.getElementById('st-close').addEventListener('click',closeSheet);
+document.getElementById('sheet-scrim').addEventListener('click',closeSheet);
+document.querySelectorAll('.actions .act').forEach(b=>b.addEventListener('click',()=>careAction(b.dataset.act)));
+document.getElementById('give-grid').addEventListener('click',e=>{
+  const chip=e.target.closest('[data-give]');if(!chip||chip.classList.contains('empty'))return;
+  giveGift(chip.dataset.give);
+});
+// shop wiring
+document.getElementById('btn-shop').addEventListener('click',()=>{renderShop();document.getElementById('shop-modal').classList.remove('hidden');});
+document.getElementById('shop-close').addEventListener('click',()=>document.getElementById('shop-modal').classList.add('hidden'));
+document.getElementById('shop-modal').addEventListener('click',e=>{if(e.target.id==='shop-modal')document.getElementById('shop-modal').classList.add('hidden');});
+document.getElementById('shop-grid').addEventListener('click',e=>{const b=e.target.closest('[data-buy]');if(!b||b.disabled)return;buyItem(b.dataset.buy);});
+document.getElementById('btn-lang').addEventListener('click',()=>switchLang(LANG==='nl'?'en':'nl'));
+document.getElementById('intro-lang').addEventListener('click',()=>switchLang(LANG==='nl'?'en':'nl'));
+document.getElementById('intro-start').addEventListener('click',()=>{document.getElementById('intro').classList.add('hidden');running=true;lastTs=null;});
+
+// ═══ MAIN LOOP ══════════════════════════════════════════════════════════
+let lastTs=null, uiAcc=0;
+function loop(ts){
+  if(running){
+    if(lastTs!=null){const dt=Math.min((ts-lastTs)/1000,0.05);step(dt);}
+    lastTs=ts;
+  }else lastTs=null;
+  render();
+  uiAcc++;
+  if(uiAcc%10===0){renderClock(); if(openId!=null)renderSheet();}
+  requestAnimationFrame(loop);
+}
+
+// ═══ INIT ═══════════════════════════════════════════════════════════════
+buildWorld();
+applyStrings();
+renderClock();
+updateHint();
+render();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
