@@ -267,6 +267,8 @@ export async function GET(request: NextRequest) {
         videoUrl: result.videoUrl ?? undefined,
         error: result.error ?? undefined,
         progress: result.progress,
+        progressPercent: result.progressPercent,
+        elapsedSeconds: result.elapsedSeconds,
       });
     }
 

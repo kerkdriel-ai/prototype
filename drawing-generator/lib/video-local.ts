@@ -17,6 +17,8 @@ interface LocalJobStatusResponse {
   videoBase64?: string;
   error?: string;
   progress?: string;
+  progressPercent?: number;
+  elapsedSeconds?: number;
 }
 
 interface LocalHealthResponse {
@@ -107,7 +109,13 @@ function resolveLocalVideoUrl(body: LocalJobStatusResponse): string | null {
 export async function getLocalVideoJob(
   jobId: string,
   baseUrl?: string
-): Promise<VideoJobResult & { progress?: string }> {
+): Promise<
+  VideoJobResult & {
+    progress?: string;
+    progressPercent?: number;
+    elapsedSeconds?: number;
+  }
+> {
   const url = localBaseUrl(baseUrl);
   const res = await fetch(`${url}/v1/jobs/${encodeURIComponent(jobId)}`, {
     cache: "no-store",
@@ -134,6 +142,8 @@ export async function getLocalVideoJob(
       videoUrl: resolveLocalVideoUrl(body),
       error: body.videoUrl || body.videoBase64 ? null : "Geen video ontvangen",
       progress: body.progress,
+      progressPercent: body.progressPercent,
+      elapsedSeconds: body.elapsedSeconds,
     };
   }
 
@@ -143,6 +153,8 @@ export async function getLocalVideoJob(
       videoUrl: null,
       error: body.error ?? "Lokale video-generatie mislukt",
       progress: body.progress,
+      progressPercent: body.progressPercent,
+      elapsedSeconds: body.elapsedSeconds,
     };
   }
 
@@ -151,5 +163,7 @@ export async function getLocalVideoJob(
     videoUrl: null,
     error: null,
     progress: body.progress,
+    progressPercent: body.progressPercent,
+    elapsedSeconds: body.elapsedSeconds,
   };
 }

@@ -54,6 +54,7 @@ export interface AnimationScriptRecord {
   script: string;
   moments: Array<{ label: string; beat: string }>;
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface Drawing {

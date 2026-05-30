@@ -22,15 +22,18 @@ export default function ScriptPage() {
     });
   }, [id]);
 
-  const handleScriptSaved = useCallback(
-    async (script: AnimationScriptRecord) => {
-      if (!drawing) return;
-      const updated = { ...drawing, animationScript: script, updatedAt: Date.now() };
-      setDrawing(updated);
-      await saveDrawing(updated);
-    },
-    [drawing]
-  );
+  const handleScriptSaved = useCallback(async (script: AnimationScriptRecord) => {
+    setDrawing((current) => {
+      if (!current) return current;
+      const updated = {
+        ...current,
+        animationScript: script,
+        updatedAt: Date.now(),
+      };
+      void saveDrawing(updated);
+      return updated;
+    });
+  }, []);
 
   const handleVideoSaved = useCallback(
     async (video: AiVideoRecord) => {

@@ -14,7 +14,9 @@ import { Label } from "@/components/ui/label";
 import {
   startAiVideoGeneration,
   waitForAiVideo,
+  type VideoProgressUpdate,
 } from "@/lib/animate-video";
+import { VideoGenerationProgress } from "@/components/VideoGenerationProgress";
 import { buildVideoPrompt } from "@/lib/video-prompt";
 import { SegmentApiError } from "@/lib/segment-errors";
 import { SegmentRateLimitAlert } from "@/components/SegmentRateLimitAlert";
@@ -87,6 +89,9 @@ export function AiVideoGenerator({
   const [showPreview, setShowPreview] = useState(false);
   const [focusedPartId, setFocusedPartId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [videoProgress, setVideoProgress] = useState<VideoProgressUpdate | null>(
+    null
+  );
   const [generating, setGenerating] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(
     videos[0]?.id ?? null
@@ -171,6 +176,7 @@ export function AiVideoGenerator({
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     setRateLimit(null);
+    setVideoProgress(null);
     setStatus("Video wordt voorbereid...");
 
     try {
@@ -188,9 +194,10 @@ export function AiVideoGenerator({
         url = start.videoUrl;
         setStatus("Video geladen uit cache");
       } else {
-        url = await waitForAiVideo(start.predictionId, setStatus);
+        url = await waitForAiVideo(start.predictionId, setVideoProgress);
       }
 
+      setVideoProgress(null);
       setStatus(null);
 
       const record = createVideoRecord({
@@ -215,6 +222,7 @@ export function AiVideoGenerator({
           retryAfterMs: err.retryAfterMs,
           limit: err.limit,
         });
+        setVideoProgress(null);
         setStatus(null);
       } else {
         setStatus(
@@ -541,7 +549,16 @@ export function AiVideoGenerator({
         </p>
       )}
 
-      {status && (
+      {generating && (videoProgress || status) && (
+        <VideoGenerationProgress
+          message={videoProgress?.message ?? status}
+          progressPercent={videoProgress?.progressPercent}
+          elapsedSeconds={videoProgress?.elapsedSeconds}
+          isLocal={provider === "local"}
+        />
+      )}
+
+      {status && !generating && (
         <p className="text-center text-sm text-violet-700">{status}</p>
       )}
 

@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Film, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startAiVideoGeneration, waitForAiVideo } from "@/lib/animate-video";
+import {
+  startAiVideoGeneration,
+  waitForAiVideo,
+  type VideoProgressUpdate,
+} from "@/lib/animate-video";
+import { VideoGenerationProgress } from "@/components/VideoGenerationProgress";
 import { scriptToVideoParams } from "@/lib/script-to-video";
 import { buildVideoPrompt } from "@/lib/video-prompt";
 import { SegmentApiError } from "@/lib/segment-errors";
@@ -40,6 +45,9 @@ export function ScriptVideoExecutor({
   onVideoSaved,
 }: ScriptVideoExecutorProps) {
   const [generating, setGenerating] = useState(false);
+  const [videoProgress, setVideoProgress] = useState<VideoProgressUpdate | null>(
+    null
+  );
   const [status, setStatus] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(
@@ -79,6 +87,7 @@ export function ScriptVideoExecutor({
     async (force = false) => {
       setGenerating(true);
       setRateLimit(null);
+      setVideoProgress(null);
       setStatus("Video wordt voorbereid op basis van het script...");
 
       try {
@@ -95,9 +104,10 @@ export function ScriptVideoExecutor({
           url = start.videoUrl;
           setStatus("Video geladen uit cache");
         } else {
-          url = await waitForAiVideo(start.predictionId, setStatus);
+          url = await waitForAiVideo(start.predictionId, setVideoProgress);
         }
 
+        setVideoProgress(null);
         setStatus(null);
 
         const record = createVideoRecord({
@@ -124,6 +134,7 @@ export function ScriptVideoExecutor({
             retryAfterMs: err.retryAfterMs,
             limit: err.limit,
           });
+          setVideoProgress(null);
           setStatus(null);
         } else {
           setStatus(
@@ -209,7 +220,16 @@ export function ScriptVideoExecutor({
         </p>
       )}
 
-      {status && (
+      {generating && (videoProgress || status) && (
+        <VideoGenerationProgress
+          message={videoProgress?.message ?? status}
+          progressPercent={videoProgress?.progressPercent}
+          elapsedSeconds={videoProgress?.elapsedSeconds}
+          isLocal={provider === "local"}
+        />
+      )}
+
+      {status && !generating && (
         <p className="mb-4 text-center text-sm text-violet-700">{status}</p>
       )}
 

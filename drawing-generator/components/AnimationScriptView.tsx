@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Clapperboard,
   Loader2,
   RefreshCw,
+  Save,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { fetchAnimationScript } from "@/lib/animation-script-client";
 import { SegmentApiError } from "@/lib/segment-errors";
 import { SegmentRateLimitAlert } from "@/components/SegmentRateLimitAlert";
@@ -26,6 +28,14 @@ interface AnimationScriptViewProps {
   onVideoSaved?: (video: AiVideoRecord) => void;
 }
 
+function scriptsEqual(a: AnimationScriptRecord, b: AnimationScriptRecord): boolean {
+  return (
+    a.summary === b.summary &&
+    a.script === b.script &&
+    JSON.stringify(a.moments) === JSON.stringify(b.moments)
+  );
+}
+
 export function AnimationScriptView({
   drawingName,
   originalImage,
@@ -38,13 +48,94 @@ export function AnimationScriptView({
   const [script, setScript] = useState<AnimationScriptRecord | null>(
     savedScript ?? null
   );
+  const [savedSnapshot, setSavedSnapshot] = useState<AnimationScriptRecord | null>(
+    savedScript ?? null
+  );
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [rateLimit, setRateLimit] = useState<{
     message: string;
     retryAfterMs?: number;
     limit?: number;
   } | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (savedScript) {
+      setScript(savedScript);
+      setSavedSnapshot(savedScript);
+    }
+  }, [savedScript?.createdAt, savedScript?.updatedAt]);
+
+  const isDirty =
+    script && savedSnapshot ? !scriptsEqual(script, savedSnapshot) : false;
+
+  const persistScript = useCallback(
+    async (next: AnimationScriptRecord, fromAutoSave = false) => {
+      const record: AnimationScriptRecord = {
+        ...next,
+        updatedAt: Date.now(),
+      };
+      setSaving(true);
+      setSaveStatus(null);
+      try {
+        await onScriptSaved(record);
+        setScript(record);
+        setSavedSnapshot(record);
+        setSaveStatus(fromAutoSave ? "Automatisch opgeslagen" : "Opgeslagen");
+        setTimeout(() => setSaveStatus(null), 2500);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [onScriptSaved]
+  );
+
+  const scheduleAutoSave = useCallback(
+    (next: AnimationScriptRecord) => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => {
+        void persistScript(next, true);
+      }, 1200);
+    },
+    [persistScript]
+  );
+
+  useEffect(
+    () => () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    },
+    []
+  );
+
+  const updateScript = useCallback(
+    (patch: Partial<AnimationScriptRecord>) => {
+      setScript((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, ...patch };
+        scheduleAutoSave(next);
+        return next;
+      });
+    },
+    [scheduleAutoSave]
+  );
+
+  const updateMomentBeat = useCallback(
+    (index: number, beat: string) => {
+      setScript((prev) => {
+        if (!prev) return prev;
+        const moments = prev.moments.map((m, i) =>
+          i === index ? { ...m, beat } : m
+        );
+        const next = { ...prev, moments };
+        scheduleAutoSave(next);
+        return next;
+      });
+    },
+    [scheduleAutoSave]
+  );
 
   const generate = useCallback(
     async (force = false) => {
@@ -62,10 +153,12 @@ export function AnimationScriptView({
         const record: AnimationScriptRecord = {
           ...result,
           createdAt: Date.now(),
+          updatedAt: Date.now(),
         };
         setScript(record);
+        setSavedSnapshot(record);
         setStatus(null);
-        onScriptSaved(record);
+        await onScriptSaved(record);
       } catch (err) {
         if (SegmentApiError.isRateLimit(err)) {
           setRateLimit({
@@ -86,7 +179,10 @@ export function AnimationScriptView({
     [originalImage, onScriptSaved, parts]
   );
 
-  const scriptParagraphs = script?.script.split(/\n\n+/).filter(Boolean) ?? [];
+  const handleManualSave = () => {
+    if (!script || !isDirty) return;
+    void persistScript(script, false);
+  };
 
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
@@ -125,35 +221,64 @@ export function AnimationScriptView({
 
         {script && !loading && (
           <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-violet-700">
+                Pas het script aan — wijzigingen worden automatisch opgeslagen
+              </p>
+              <div className="flex items-center gap-2">
+                {saveStatus && (
+                  <span className="text-xs text-green-700">{saveStatus}</span>
+                )}
+                {isDirty && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleManualSave}
+                    disabled={saving}
+                    className="rounded-full"
+                  >
+                    {saving ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Save className="mr-1 h-3 w-3" />
+                    )}
+                    Opslaan
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <section className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-6 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-600" />
-                <h3 className="text-lg font-bold text-amber-950">
+                <Label htmlFor="script-summary" className="text-lg font-bold text-amber-950">
                   Wat zie ik op de tekening?
-                </h3>
+                </Label>
               </div>
-              <p className="text-base leading-relaxed text-amber-950/90">
-                {script.summary}
-              </p>
+              <textarea
+                id="script-summary"
+                value={script.summary}
+                onChange={(e) => updateScript({ summary: e.target.value })}
+                rows={4}
+                className="w-full resize-y rounded-lg border border-amber-200 bg-white/80 px-3 py-2 text-base leading-relaxed text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
             </section>
 
             <section className="rounded-2xl border-2 border-violet-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <Clapperboard className="h-5 w-5 text-violet-600" />
-                <h3 className="text-lg font-bold text-violet-950">
+                <Label htmlFor="script-body" className="text-lg font-bold text-violet-950">
                   Animatiescript
-                </h3>
+                </Label>
               </div>
-              <div className="space-y-4">
-                {scriptParagraphs.map((para, i) => (
-                  <p
-                    key={i}
-                    className="text-base leading-relaxed text-violet-950/90"
-                  >
-                    {para}
-                  </p>
-                ))}
-              </div>
+              <textarea
+                id="script-body"
+                value={script.script}
+                onChange={(e) => updateScript({ script: e.target.value })}
+                rows={10}
+                className="w-full resize-y rounded-lg border border-violet-200 px-3 py-2 text-base leading-relaxed text-violet-950 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                placeholder="Beschrijf hoe het tafereel tot leven komt..."
+              />
             </section>
 
             {script.moments.length > 0 && (
@@ -162,14 +287,20 @@ export function AnimationScriptView({
                   Per onderdeel
                 </h3>
                 <ul className="grid gap-3 sm:grid-cols-2">
-                  {script.moments.map((m) => {
-                    const part = parts.find(
-                      (p) =>
-                        p.label.toLowerCase() === m.label.toLowerCase()
+                  {script.moments.map((m, momentIndex) => {
+                    const labelLower = m.label.toLowerCase();
+                    const matchingParts = parts.filter(
+                      (p) => p.label.toLowerCase() === labelLower
                     );
+                    const sameLabelIndex = script.moments
+                      .slice(0, momentIndex)
+                      .filter((x) => x.label.toLowerCase() === labelLower).length;
+                    const part =
+                      matchingParts[sameLabelIndex] ?? matchingParts[0];
+
                     return (
                       <li
-                        key={m.label}
+                        key={`${m.label}-${momentIndex}`}
                         className="flex gap-3 rounded-xl border border-pink-200 bg-white p-3"
                       >
                         {part && (
@@ -180,13 +311,19 @@ export function AnimationScriptView({
                             className="h-12 w-12 shrink-0 rounded-lg border border-pink-100 object-contain"
                           />
                         )}
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1 space-y-1.5">
                           <span className="block font-semibold text-pink-950">
                             {m.label}
                           </span>
-                          <span className="text-sm text-pink-900/80">
-                            {m.beat}
-                          </span>
+                          <input
+                            type="text"
+                            value={m.beat}
+                            onChange={(e) =>
+                              updateMomentBeat(momentIndex, e.target.value)
+                            }
+                            className="w-full rounded-md border border-pink-200 px-2 py-1 text-sm text-pink-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
+                            placeholder="Wat doet dit onderdeel?"
+                          />
                         </div>
                       </li>
                     );
@@ -210,11 +347,11 @@ export function AnimationScriptView({
               <Button
                 variant="outline"
                 onClick={() => generate(true)}
-                disabled={loading}
+                disabled={loading || saving}
                 className="rounded-full"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Opnieuw genereren
+                Opnieuw genereren met AI
               </Button>
             </div>
           </>
