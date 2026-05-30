@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MapLibre 3D Placement</title>
+    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <div id="ui" class="panel">
+      <div class="row">
+        <button id="locateBtn">Share my location</button>
+        <label class="toggle"><input type="checkbox" id="editToggle" /> Edit mode</label>
+      </div>
+      <div class="row">
+        <input id="fileInput" type="file" accept=".glb,.gltf" />
+        <button id="placeCenter">Place at center</button>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="buildingsToggle" checked /> Buildings</label>
+        <label><input type="checkbox" id="streetsToggle" checked /> Streets</label>
+      </div>
+      <div id="status">No model loaded</div>
+      <details id="layersPanel" class="layers-panel">
+        <summary>Style Layers</summary>
+        <div class="layers-controls">
+          <input id="layerFilter" placeholder="Filter layers by name..." />
+          <button id="refreshLayers">Refresh</button>
+        </div>
+        <div id="layerList" class="layer-list"></div>
+      </details>
+      <details id="objectsPanel" class="objects-panel">
+        <summary>Placed Objects</summary>
+        <div id="objectsList" class="layer-list"></div>
+        <div id="objectControls" class="object-controls">
+          <div id="selectedObjectLabel" class="object-selected-label">Select an object to edit</div>
+          <div class="control-grid">
+            <div class="control-section-label">Position (meters from placement)</div>
+            <div class="control-row">
+              <label for="posX">Offset X</label>
+              <input id="posX" type="range" min="-200" max="200" step="0.5" value="0" />
+              <span id="posXVal" class="slider-val">0 m</span>
+            </div>
+            <div class="control-row">
+              <label for="posY">Offset Y</label>
+              <input id="posY" type="range" min="-200" max="200" step="0.5" value="0" />
+              <span id="posYVal" class="slider-val">0 m</span>
+            </div>
+            <div class="control-row">
+              <label for="posZ">Altitude</label>
+              <input id="posZ" type="range" min="0" max="500" step="0.5" value="0" />
+              <span id="posZVal" class="slider-val">0 m</span>
+            </div>
+            <div class="control-section-label">Rotation (degrees)</div>
+            <div class="control-row">
+              <label for="rotX">Tilt X</label>
+              <input id="rotX" type="range" min="-180" max="180" step="0.5" value="0" />
+              <span id="rotXVal" class="slider-val">0°</span>
+            </div>
+            <div class="control-row">
+              <label for="rotY">Spin Y</label>
+              <input id="rotY" type="range" min="-180" max="180" step="0.5" value="0" />
+              <span id="rotYVal" class="slider-val">0°</span>
+            </div>
+            <div class="control-row">
+              <label for="rotZ">Roll Z</label>
+              <input id="rotZ" type="range" min="-180" max="180" step="0.5" value="0" />
+              <span id="rotZVal" class="slider-val">0°</span>
+            </div>
+            <div class="control-section-label">Size</div>
+            <div class="control-row">
+              <label for="scale">Scale</label>
+              <input id="scale" type="range" min="0.1" max="20" step="0.1" value="1" />
+              <span id="scaleVal" class="slider-val">1.0x</span>
+            </div>
+          </div>
+          <div class="control-actions">
+            <button id="resetObject" class="secondary">Reset to original</button>
+            <button id="deleteObject" class="danger">Delete</button>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js"
+      }
+    }
+    </script>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

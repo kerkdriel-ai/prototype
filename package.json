@@ -1,0 +1,11 @@
+{
+  "name": "maplibre-3d-placement",
+  "version": "1.0.0",
+  "description": "Local HTTPS dev server for MapLibre 3D placement demo.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js --cert cert.pem --key key.pem --port 5173",
+    "start:mkcert": "node server.js --cert localhost.pem --key localhost-key.pem --port 5173"
+  },
+  "license": "MIT"
+}
