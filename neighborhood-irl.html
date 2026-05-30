@@ -309,6 +309,22 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 .ar-act:disabled{opacity:.45;cursor:not-allowed;}
 .ar-act .ico{width:24px;height:24px;}
 
+/* WebXR dom-overlay (Android): transparent over the real-world AR, just the UI chrome */
+#xr-overlay{position:fixed;inset:0;z-index:84;pointer-events:none;}
+#xr-overlay.hidden{display:none;}
+#xr-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:max(14px,env(safe-area-inset-top)) 16px 10px;}
+#xr-name{font-family:var(--serif);font-style:italic;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7);}
+#xr-close{flex-shrink:0;width:40px;height:40px;border-radius:50%;border:none;background:rgba(0,0,0,.5);
+  color:#fff;font-size:19px;cursor:pointer;pointer-events:auto;}
+#xr-hint{position:absolute;left:50%;top:max(58px,calc(env(safe-area-inset-top) + 44px));transform:translateX(-50%);
+  font-size:12px;font-weight:600;color:#fff;background:rgba(0,0,0,.45);padding:6px 13px;border-radius:200px;white-space:nowrap;
+  opacity:1;transition:opacity .4s;}
+#xr-hint.hide{opacity:0;}
+#xr-actions{position:absolute;left:0;right:0;bottom:max(22px,env(safe-area-inset-bottom));
+  display:flex;gap:10px;justify-content:center;padding:0 16px;}
+#xr-actions .ar-act{pointer-events:auto;}
+
 /* ─── PLAYER-MADE CHARACTER ART ─── */
 .char-img{width:100%;height:100%;object-fit:contain;display:block;}
 #ar-doodle .char-img{filter:drop-shadow(0 0 5px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 4px 5px rgba(0,0,0,.35));}
@@ -456,6 +472,20 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
   </div>
 </div>
 
+<!-- WEBXR AR (Android / ARCore) — real world-tracked AR; dom-overlay UI -->
+<div id="xr-overlay" class="hidden">
+  <div id="xr-top">
+    <div id="xr-name">—</div>
+    <button id="xr-close">✕</button>
+  </div>
+  <div id="xr-hint">Tik om te plaatsen · loop eromheen</div>
+  <div id="xr-actions">
+    <button class="ar-act" data-xact="feed"><span class="ico" data-ico="apple"></span><span id="xr-lbl-feed">Voeren</span></button>
+    <button class="ar-act" data-xact="play"><span class="ico" data-ico="gamepad"></span><span id="xr-lbl-play">Spelen</span></button>
+    <button class="ar-act" data-xact="greet"><span class="ico" data-ico="hand"></span><span id="xr-lbl-greet">Groeten</span></button>
+  </div>
+</div>
+
 <!-- CREATE A CHARACTER -->
 <div id="create-modal" class="hidden">
   <div class="create-box">
@@ -546,7 +576,7 @@ const STR={
     sayLove:'I love it!!',sayLike:'Thank you!',sayMeh:'Oh, thanks.',
     wishWant:(it)=>`They'd <b>love</b> a ${it}.`,wishReward:'Fulfilling a wish: bonus <span class="ico" data-ico="coin"></span> + big happiness boost.',
     shopTitle:'The Corner Shop',shopSub:'Spend coins to stock your bag. Then walk to a neighbor and give them one.',shopOwn:'In bag: ',shopDone:'Done',
-    arView:'View in AR',arHint:'Move your phone to look around',arFeed:'Feed',arPlay:'Play',arGreet:'Greet',
+    arView:'View in AR',arHint:'Move your phone to look around',xrHint:'Tap to place · walk around it',arFeed:'Feed',arPlay:'Play',arGreet:'Greet',
     questsTitle:'Main quests',qWants:'wants a',qFrom:'from',qBring:(n)=>`Bring it to ${n}`,qDone2:(n)=>`${n} is happy! +15`,qGot:(g,it)=>`${g} gave you a ${it} for the quest!`,
     createTitle:'Create a neighbour',createSub:'Draw a character or upload one — it gets a personality and wishes automatically.',createNamePh:'Name',createPlace:'Place on the map',createDone:(n)=>`${n} joined the neighbourhood!`,customType:'Creation',createUpload:'Upload',createClear:'Clear',createBlank:'Draw something first!',createBtn:'Make',
     introTitle:'The neighborhood around you',introSub:'The characters are scattered across your <b>real surroundings</b>. You have to physically walk to them — to the end of the street, around the corner — to reach them.',
@@ -567,7 +597,7 @@ const STR={
     sayLove:'Ik vind het geweldig!!',sayLike:'Dank je wel!',sayMeh:'Oh, bedankt.',
     wishWant:(it)=>`Ze zouden <b>dolblij</b> zijn met een ${it}.`,wishReward:'Een wens vervullen: bonus <span class="ico" data-ico="coin"></span> + flinke blijdschap-boost.',
     shopTitle:'De Buurtwinkel',shopSub:'Geef munten uit om je tas te vullen. Loop daarna echt naar een buur en geef ze iets.',shopOwn:'In tas: ',shopDone:'Klaar',
-    arView:'Bekijk in AR',arHint:'Beweeg je telefoon om rond te kijken',arFeed:'Voeren',arPlay:'Spelen',arGreet:'Groeten',
+    arView:'Bekijk in AR',arHint:'Beweeg je telefoon om rond te kijken',xrHint:'Tik om te plaatsen · loop eromheen',arFeed:'Voeren',arPlay:'Spelen',arGreet:'Groeten',
     questsTitle:'Hoofdmissies',qWants:'wil een',qFrom:'van',qBring:(n)=>`Breng het naar ${n}`,qDone2:(n)=>`${n} is blij! +15`,qGot:(g,it)=>`${g} gaf je een ${it} voor de missie!`,
     createTitle:'Maak een buur',createSub:'Teken een figuur of upload er een — die krijgt vanzelf een karakter en wensen.',createNamePh:'Naam',createPlace:'Plaats op de kaart',createDone:(n)=>`${n} hoort er nu bij!`,customType:'Creatie',createUpload:'Upload',createClear:'Wissen',createBlank:'Teken eerst iets!',createBtn:'Maak',
     introTitle:'De buurt om je heen',introSub:'De personages staan verspreid in je <b>echte omgeving</b>. Je moet er in het echt naartoe lopen — naar het eind van de straat, om de hoek — om ze te bereiken.',
@@ -1015,6 +1045,7 @@ const arEl=()=>document.getElementById('ar');
 
 function openAR(){
   const c=chars.find(x=>x.id===openId); if(!c) return;
+  if(isAndroid && xrSupported){ startXR(c); return; }   // real WebXR AR on Android
   arActive=true; arBaseA=null; arBaseB=null;
   arOx=arOy=arTox=arToy=0; arT=0;
   const el=arEl(); el.classList.remove('hidden','no-cam');
@@ -1092,6 +1123,101 @@ function arCare(act){
 }
 window.addEventListener('deviceorientation',arAnchor,true);
 
+// ═══ WEBXR AR (Android / ARCore) ════════════════════════════════════════
+// Real world-tracked AR: the character is a billboarded sprite placed in
+// your room, anchored in space (walk around it), strolling toward/away.
+const isAndroid=/android/i.test(navigator.userAgent);
+let xrSupported=false, xrActive=false, XR3=null;
+let xrSession=null, xrRenderer=null, xrScene=null, xrCamera=null, xrMesh=null;
+let xrAnchor=null, xrPlaced=false, xrHopUntil=0;
+if(navigator.xr&&navigator.xr.isSessionSupported){
+  navigator.xr.isSessionSupported('immersive-ar').then(v=>{xrSupported=v;}).catch(()=>{});
+}
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
+// rasterize a character's art to a transparent PNG (player image, or doodle with a white halo)
+async function charTextureURL(c){
+  if(c.img) return c.img;
+  const sized=doodleSVG(c.cat).replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" ');
+  const img=await loadImg('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(sized));
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const x=cv.getContext('2d');
+  x.shadowColor='rgba(255,255,255,.95)';x.shadowBlur=11;
+  x.drawImage(img,22,22,212,212);x.drawImage(img,22,22,212,212);   // twice → stronger halo
+  return cv.toDataURL('image/png');
+}
+async function startXR(c){
+  try{
+    if(!XR3) XR3=await import('https://unpkg.com/three@0.160.0/build/three.module.js');
+    const T3=XR3;
+    const overlay=document.getElementById('xr-overlay');
+    overlay.classList.remove('hidden');
+    document.getElementById('xr-name').textContent=c.name;
+    const hint=document.getElementById('xr-hint'); hint.classList.remove('hide');
+    document.querySelectorAll('#xr-actions .ar-act').forEach(b=>b.disabled=c.dist>REACH_M);
+    xrRenderer=new T3.WebGLRenderer({antialias:true,alpha:true});
+    xrRenderer.setPixelRatio(window.devicePixelRatio);
+    xrRenderer.setSize(window.innerWidth,window.innerHeight);
+    xrRenderer.xr.enabled=true;
+    xrScene=new T3.Scene();
+    xrScene.add(new T3.HemisphereLight(0xffffff,0xbbbbbb,1.1));
+    xrCamera=new T3.PerspectiveCamera(70,window.innerWidth/window.innerHeight,0.01,40);
+    // character billboard sprite
+    const url=await charTextureURL(c);
+    const tex=await new Promise((res)=>new T3.TextureLoader().load(url,res));
+    tex.colorSpace=T3.SRGBColorSpace;
+    const mat=new T3.MeshBasicMaterial({map:tex,transparent:true,side:T3.DoubleSide,depthWrite:false});
+    xrMesh=new T3.Mesh(new T3.PlaneGeometry(0.5,0.5),mat);
+    xrMesh.visible=false; xrScene.add(xrMesh);
+    xrPlaced=false; xrAnchor=new T3.Vector3();
+    xrSession=await navigator.xr.requestSession('immersive-ar',
+      {optionalFeatures:['dom-overlay','local-floor'],domOverlay:{root:overlay}});
+    xrSession.addEventListener('end',cleanupXR);
+    xrSession.addEventListener('select',()=>{xrPlaced=false;});  // tap → re-place in front
+    await xrRenderer.xr.setSession(xrSession);
+    xrActive=true;
+    xrRenderer.setAnimationLoop((t)=>xrFrame(t,T3));
+  }catch(err){
+    console.warn('WebXR failed, falling back to camera passthrough',err);
+    cleanupXR();
+    xrSupported=false;   // don't retry XR this session
+    openAR();            // openId is still set → opens the passthrough AR
+  }
+}
+function xrFrame(t,T3){
+  if(!xrActive||!xrMesh) return;
+  const cam=xrRenderer.xr.getCamera();
+  const camPos=new T3.Vector3(); cam.getWorldPosition(camPos);
+  if(!xrPlaced){                                   // drop it ~1.3 m in front, at chest height
+    const dir=new T3.Vector3(); cam.getWorldDirection(dir); dir.y=0;
+    if(dir.lengthSq()<1e-4) dir.set(0,0,-1); dir.normalize();
+    xrAnchor.set(camPos.x+dir.x*1.3, camPos.y-0.25, camPos.z+dir.z*1.3);
+    xrMesh.visible=true; xrPlaced=true;
+    document.getElementById('xr-hint').classList.add('hide');
+  }
+  // stroll toward/away from you along the line between you and the anchor
+  const flat=new T3.Vector3(xrAnchor.x-camPos.x,0,xrAnchor.z-camPos.z);
+  const len=flat.length()||1; flat.multiplyScalar(1/len);
+  const wander=Math.sin(t*0.0006)*0.45;            // ±0.45 m in depth
+  let scale=1; if(t<xrHopUntil){const k=(xrHopUntil-t)/420; scale=1+Math.sin(k*Math.PI)*0.4;}
+  xrMesh.position.set(xrAnchor.x+flat.x*wander, xrAnchor.y+Math.sin(t*0.002)*0.05, xrAnchor.z+flat.z*wander);
+  xrMesh.scale.setScalar(scale);
+  xrMesh.quaternion.copy(cam.quaternion);          // billboard: face the viewer
+  xrRenderer.render(xrScene,xrCamera);
+}
+function xrHop(){ xrHopUntil=performance.now()+420; }
+function cleanupXR(){
+  xrActive=false;
+  if(xrRenderer){try{xrRenderer.setAnimationLoop(null);}catch(e){} try{xrRenderer.dispose();}catch(e){} xrRenderer=null;}
+  if(xrSession){try{xrSession.removeEventListener('end',cleanupXR);}catch(e){} xrSession=null;}
+  xrScene=null; xrMesh=null; xrPlaced=false;
+  document.getElementById('xr-overlay').classList.add('hidden');
+}
+function endXR(){ if(xrSession){try{xrSession.end();}catch(e){cleanupXR();} } else cleanupXR(); }
+document.getElementById('xr-close').addEventListener('click',endXR);
+document.querySelectorAll('#xr-actions .ar-act').forEach(b=>b.addEventListener('click',()=>{
+  const c=chars.find(x=>x.id===openId); if(!c||c.dist>REACH_M) return;
+  if(careAction(b.dataset.xact)) xrHop();
+}));
+
 // ═══ CREATE A CHARACTER (drawing canvas + upload) ═══════════════════════
 const SWATCHES=['#23201b','#E06060','#2D6A4F','#3E7CB1','#E8A33D','#C77DFF'];
 let drawCtx=null, drawing=false, brushColor=SWATCHES[0], swatchesBuilt=false;
@@ -1148,6 +1274,7 @@ function applyStrings(){const s=T();document.documentElement.lang=LANG;
   set('lbl-feed',s.feed);set('lbl-play',s.play);set('lbl-greet',s.greet);
   set('shop-title',s.shopTitle);set('shop-sub',s.shopSub);set('shop-close',s.shopDone);
   set('lbl-ar',s.arView);set('ar-lbl-feed',s.arFeed);set('ar-lbl-play',s.arPlay);set('ar-lbl-greet',s.arGreet);
+  set('xr-lbl-feed',s.arFeed);set('xr-lbl-play',s.arPlay);set('xr-lbl-greet',s.arGreet);set('xr-hint',s.xrHint);
   set('quests-title-txt',s.questsTitle);renderQuests();
   set('create-fab-txt',s.createBtn);set('create-title',s.createTitle);set('create-sub-txt',s.createSub);
   set('create-place',s.createPlace);set('tool-clear-txt',s.createClear);set('tool-upload-txt',s.createUpload);
@@ -1205,7 +1332,7 @@ document.querySelectorAll('#dpad .dbtn').forEach(b=>{
 });
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){if(!demo)return;e.preventDefault();
   if(k==='arrowup'||k==='w')held.up=true;if(k==='arrowdown'||k==='s')held.down=true;if(k==='arrowleft'||k==='a')held.left=true;if(k==='arrowright'||k==='d')held.right=true;}
-  if(k==='escape'){if(arActive)closeAR();else if(openId!=null)closeSheet();}});
+  if(k==='escape'){if(xrActive)endXR();else if(arActive)closeAR();else if(openId!=null)closeSheet();}});
 window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='arrowup'||k==='w')held.up=false;if(k==='arrowdown'||k==='s')held.down=false;if(k==='arrowleft'||k==='a')held.left=false;if(k==='arrowright'||k==='d')held.right=false;});
 setInterval(()=>{if(!demo)return;let dx=0,dy=0;if(held.up)dy+=DEMO_STEP;if(held.down)dy-=DEMO_STEP;if(held.left)dx-=DEMO_STEP;if(held.right)dx+=DEMO_STEP;if(dx||dy)moveDemo(dx,dy);},120);
 
