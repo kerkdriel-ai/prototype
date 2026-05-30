@@ -1,13 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { Download, Film, Loader2, Play } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Film, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  downloadVideoUrl,
-  startAiVideoGeneration,
-  waitForAiVideo,
-} from "@/lib/animate-video";
+import { startAiVideoGeneration, waitForAiVideo } from "@/lib/animate-video";
 import { scriptToVideoParams } from "@/lib/script-to-video";
 import { buildVideoPrompt } from "@/lib/video-prompt";
 import { SegmentApiError } from "@/lib/segment-errors";
@@ -16,6 +12,8 @@ import {
   loadStoredVideoProvider,
   VideoProviderSelect,
 } from "@/components/VideoProviderSelect";
+import { VideoHistoryPanel } from "@/components/VideoHistoryPanel";
+import { createVideoRecord } from "@/lib/video-history";
 import { VIDEO_I2V_MODEL } from "@/lib/video-models";
 import type { VideoProvider } from "@/lib/video-types";
 import type {
@@ -29,7 +27,7 @@ interface ScriptVideoExecutorProps {
   parts: Part[];
   drawingName: string;
   script: AnimationScriptRecord;
-  existingVideo?: AiVideoRecord;
+  savedVideos?: AiVideoRecord[];
   onVideoSaved: (video: AiVideoRecord) => void;
 }
 
@@ -38,29 +36,31 @@ export function ScriptVideoExecutor({
   parts,
   drawingName,
   script,
-  existingVideo,
+  savedVideos = [],
   onVideoSaved,
 }: ScriptVideoExecutorProps) {
-  const scriptVideo =
-    existingVideo?.fromScript &&
-    existingVideo.scriptCreatedAt === script.createdAt
-      ? existingVideo
-      : undefined;
-
-  const [videoUrl, setVideoUrl] = useState<string | null>(
-    scriptVideo?.url ?? null
-  );
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(
+    savedVideos[0]?.id ?? null
+  );
   const [rateLimit, setRateLimit] = useState<{
     message: string;
     retryAfterMs?: number;
     limit?: number;
   } | null>(null);
   const [provider, setProvider] = useState<VideoProvider>(() =>
-    scriptVideo?.provider ?? loadStoredVideoProvider()
+    loadStoredVideoProvider()
   );
+
+  useEffect(() => {
+    if (savedVideos.length === 0) return;
+    setSelectedVideoId((current) => {
+      if (current && savedVideos.some((v) => v.id === current)) return current;
+      return savedVideos[0]?.id ?? null;
+    });
+  }, [savedVideos]);
 
   const videoParams = useMemo(
     () => scriptToVideoParams(script, parts),
@@ -98,10 +98,9 @@ export function ScriptVideoExecutor({
           url = await waitForAiVideo(start.predictionId, setStatus);
         }
 
-        setVideoUrl(url);
         setStatus(null);
 
-        const record: AiVideoRecord = {
+        const record = createVideoRecord({
           url,
           prompt: start.prompt,
           style: videoParams.style,
@@ -115,7 +114,8 @@ export function ScriptVideoExecutor({
           fromScript: true,
           scriptCreatedAt: script.createdAt,
           provider,
-        };
+        });
+        setSelectedVideoId(record.id!);
         onVideoSaved(record);
       } catch (err) {
         if (SegmentApiError.isRateLimit(err)) {
@@ -136,8 +136,6 @@ export function ScriptVideoExecutor({
     },
     [imageDataUrl, onVideoSaved, parts, provider, script.createdAt, videoParams]
   );
-
-  const safeName = drawingName.replace(/\s+/g, "-").toLowerCase();
 
   return (
     <section className="rounded-2xl border-4 border-violet-300 bg-gradient-to-br from-violet-50 via-white to-pink-50 p-6 shadow-lg">
@@ -174,44 +172,35 @@ export function ScriptVideoExecutor({
         />
       </div>
 
-      {!videoUrl && (
-        <Button
-          size="lg"
-          onClick={() => handleGenerate(false)}
-          disabled={generating}
-          className="w-full rounded-full bg-gradient-to-r from-violet-600 to-pink-600 text-base text-white shadow-lg shadow-violet-300/40 hover:opacity-90"
-        >
-          {generating ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Bezig...
-            </>
-          ) : (
-            <>
-              <Play className="mr-2 h-5 w-5" />
-              Maak animatievideo van script
-            </>
-          )}
-        </Button>
-      )}
+      <Button
+        size="lg"
+        onClick={() => handleGenerate(savedVideos.length > 0)}
+        disabled={generating}
+        className="mb-4 w-full rounded-full bg-gradient-to-r from-violet-600 to-pink-600 text-base text-white shadow-lg shadow-violet-300/40 hover:opacity-90"
+      >
+        {generating ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Bezig...
+          </>
+        ) : (
+          <>
+            <Play className="mr-2 h-5 w-5" />
+            {savedVideos.length > 0
+              ? "Nieuwe video van script"
+              : "Maak animatievideo van script"}
+          </>
+        )}
+      </Button>
 
-      {videoUrl && !generating && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleGenerate(true)}
-            className="rounded-full"
-          >
-            Opnieuw genereren
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => setShowPrompt((v) => !v)}
-            className="rounded-full text-violet-700"
-          >
-            {showPrompt ? "Verberg prompt" : "Bekijk video-prompt"}
-          </Button>
-        </div>
+      {savedVideos.length > 0 && !generating && (
+        <Button
+          variant="ghost"
+          onClick={() => setShowPrompt((v) => !v)}
+          className="mb-4 w-full rounded-full text-violet-700"
+        >
+          {showPrompt ? "Verberg prompt" : "Bekijk video-prompt"}
+        </Button>
       )}
 
       {showPrompt && (
@@ -224,27 +213,14 @@ export function ScriptVideoExecutor({
         <p className="mb-4 text-center text-sm text-violet-700">{status}</p>
       )}
 
-      {videoUrl && (
-        <div className="space-y-3">
-          <video
-            src={videoUrl}
-            controls
-            playsInline
-            autoPlay
-            className="w-full rounded-xl border border-violet-200 bg-black shadow-md"
-          />
-          <Button
-            variant="outline"
-            className="w-full rounded-full"
-            onClick={() =>
-              downloadVideoUrl(videoUrl, `${safeName}-script-video.mp4`)
-            }
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download MP4
-          </Button>
-        </div>
-      )}
+      <VideoHistoryPanel
+        videos={savedVideos}
+        selectedId={selectedVideoId}
+        onSelect={setSelectedVideoId}
+        drawingName={drawingName}
+        prominent
+        title="Video-geschiedenis"
+      />
     </section>
   );
 }

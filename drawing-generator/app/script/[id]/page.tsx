@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { PageShell, StreetViewLink } from "@/components/Header";
 import { AnimationScriptView } from "@/components/AnimationScriptView";
 import { getDrawing, saveDrawing } from "@/lib/db";
+import { appendVideoToDrawing, getDrawingVideos } from "@/lib/video-history";
 import type { StoredDrawing } from "@/lib/db";
 import type { AnimationScriptRecord, AiVideoRecord } from "@/types/drawing";
 
@@ -34,7 +35,10 @@ export default function ScriptPage() {
   const handleVideoSaved = useCallback(
     async (video: AiVideoRecord) => {
       if (!drawing) return;
-      const updated = { ...drawing, aiVideo: video, updatedAt: Date.now() };
+      const updated = {
+        ...appendVideoToDrawing(drawing, video),
+        updatedAt: Date.now(),
+      };
       setDrawing(updated);
       await saveDrawing(updated);
     },
@@ -68,7 +72,7 @@ export default function ScriptPage() {
         parts={drawing.parts}
         savedScript={drawing.animationScript}
         onScriptSaved={handleScriptSaved}
-        existingVideo={drawing.aiVideo}
+        savedVideos={getDrawingVideos(drawing)}
         onVideoSaved={handleVideoSaved}
       />
     </PageShell>

@@ -3,7 +3,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   Clapperboard,
-  Download,
   Eye,
   EyeOff,
   Loader2,
@@ -13,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  downloadVideoUrl,
   startAiVideoGeneration,
   waitForAiVideo,
 } from "@/lib/animate-video";
@@ -36,6 +34,10 @@ import {
   VIDEO_MOTION_STYLES,
   type VideoMotionStyle,
 } from "@/lib/video-models";
+import {
+  createVideoRecord,
+} from "@/lib/video-history";
+import { VideoHistoryPanel } from "@/components/VideoHistoryPanel";
 import type { VideoProvider } from "@/lib/video-types";
 import type { AiVideoRecord, Part } from "@/types/drawing";
 
@@ -43,6 +45,8 @@ interface AiVideoGeneratorProps {
   imageDataUrl: string;
   parts: Part[];
   drawingName: string;
+  savedVideos?: AiVideoRecord[];
+  /** @deprecated gebruik savedVideos */
   existingVideo?: AiVideoRecord;
   onVideoSaved: (video: AiVideoRecord) => void;
   onHighlightPart?: (partId: string | null) => void;
@@ -53,13 +57,28 @@ export function AiVideoGenerator({
   imageDataUrl,
   parts,
   drawingName,
+  savedVideos = [],
   existingVideo,
   onVideoSaved,
   onHighlightPart,
   prominent = false,
 }: AiVideoGeneratorProps) {
+  const videos = useMemo(
+    () =>
+      savedVideos.length > 0
+        ? savedVideos
+        : existingVideo
+          ? [existingVideo]
+          : [],
+    [savedVideos, existingVideo]
+  );
+
+  const latestManual = videos.find(
+    (v) => !v.fromScript && v.elementInstructions?.length
+  );
+
   const [style, setStyle] = useState<VideoMotionStyle>(
-    existingVideo?.style ?? "magical"
+    latestManual?.style ?? "magical"
   );
   const [elements, setElements] = useState<VideoElementInstruction[]>(() =>
     createInitialElementInstructions(parts)
@@ -69,8 +88,8 @@ export function AiVideoGenerator({
   const [focusedPartId, setFocusedPartId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(
-    existingVideo?.url ?? null
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(
+    videos[0]?.id ?? null
   );
   const [rateLimit, setRateLimit] = useState<{
     message: string;
@@ -78,18 +97,26 @@ export function AiVideoGenerator({
     limit?: number;
   } | null>(null);
   const [provider, setProvider] = useState<VideoProvider>(() =>
-    existingVideo?.provider ?? loadStoredVideoProvider()
+    latestManual?.provider ?? loadStoredVideoProvider()
   );
 
   useEffect(() => {
-    if (existingVideo?.elementInstructions?.length) {
-      setElements(existingVideo.elementInstructions);
-      setSceneNote(existingVideo.sceneNote ?? "");
-      setStyle(existingVideo.style);
+    if (videos.length === 0) return;
+    setSelectedVideoId((current) => {
+      if (current && videos.some((v) => v.id === current)) return current;
+      return videos[0]?.id ?? null;
+    });
+  }, [videos]);
+
+  useEffect(() => {
+    if (latestManual?.elementInstructions?.length) {
+      setElements(latestManual.elementInstructions);
+      setSceneNote(latestManual.sceneNote ?? "");
+      setStyle(latestManual.style);
     } else {
       setElements(createInitialElementInstructions(parts));
     }
-  }, [parts, existingVideo?.createdAt]);
+  }, [parts, latestManual?.createdAt]);
 
   const enabledLabels = useMemo(
     () => elements.filter((e) => e.enabled).map((e) => e.label),
@@ -164,10 +191,9 @@ export function AiVideoGenerator({
         url = await waitForAiVideo(start.predictionId, setStatus);
       }
 
-      setVideoUrl(url);
       setStatus(null);
 
-      const record: AiVideoRecord = {
+      const record = createVideoRecord({
         url,
         prompt: start.prompt,
         style,
@@ -179,7 +205,8 @@ export function AiVideoGenerator({
         elementInstructions: elements.filter((e) => e.enabled),
         sceneNote: sceneNote.trim() || undefined,
         provider,
-      };
+      });
+      setSelectedVideoId(record.id!);
       onVideoSaved(record);
     } catch (err) {
       if (SegmentApiError.isRateLimit(err)) {
@@ -207,7 +234,6 @@ export function AiVideoGenerator({
     provider,
   ]);
 
-  const safeName = drawingName.replace(/\s+/g, "-").toLowerCase();
   const enabledCount = elements.filter((e) => e.enabled).length;
 
   return (
@@ -519,29 +545,13 @@ export function AiVideoGenerator({
         <p className="text-center text-sm text-violet-700">{status}</p>
       )}
 
-      {videoUrl && (
-        <div className="space-y-2">
-          <video
-            src={videoUrl}
-            controls
-            playsInline
-            className={`w-full rounded-xl border border-violet-200 bg-black ${
-              prominent ? "min-h-[200px]" : ""
-            }`}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full rounded-full"
-            onClick={() =>
-              downloadVideoUrl(videoUrl, `${safeName}-ai-video.mp4`)
-            }
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download MP4
-          </Button>
-        </div>
-      )}
+      <VideoHistoryPanel
+        videos={videos}
+        selectedId={selectedVideoId}
+        onSelect={setSelectedVideoId}
+        drawingName={drawingName}
+        prominent={prominent}
+      />
     </div>
   );
 }

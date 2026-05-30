@@ -22,7 +22,7 @@ interface AnimationScriptViewProps {
   parts: Part[];
   savedScript?: AnimationScriptRecord;
   onScriptSaved: (script: AnimationScriptRecord) => void;
-  existingVideo?: AiVideoRecord;
+  savedVideos?: AiVideoRecord[];
   onVideoSaved?: (video: AiVideoRecord) => void;
 }
 
@@ -32,7 +32,7 @@ export function AnimationScriptView({
   parts,
   savedScript,
   onScriptSaved,
-  existingVideo,
+  savedVideos = [],
   onVideoSaved,
 }: AnimationScriptViewProps) {
   const [script, setScript] = useState<AnimationScriptRecord | null>(
@@ -201,7 +201,7 @@ export function AnimationScriptView({
                 parts={parts}
                 drawingName={drawingName}
                 script={script}
-                existingVideo={existingVideo}
+                savedVideos={savedVideos}
                 onVideoSaved={onVideoSaved}
               />
             )}

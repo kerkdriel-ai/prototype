@@ -38,7 +38,7 @@ interface AnimationStageProps {
   onPartUpdate: (id: string, updates: Partial<Part>) => void;
   drawingExport?: unknown;
   drawingName?: string;
-  aiVideo?: AiVideoRecord;
+  aiVideos?: AiVideoRecord[];
   onVideoSaved?: (video: AiVideoRecord) => void;
 }
 
@@ -113,7 +113,7 @@ export function AnimationStage({
   onPartUpdate,
   drawingExport,
   drawingName = "tekening",
-  aiVideo,
+  aiVideos,
   onVideoSaved,
 }: AnimationStageProps) {
   const stageRef = useRef<Konva.Stage>(null);
@@ -333,7 +333,7 @@ export function AnimationStage({
             imageDataUrl={originalImage}
             parts={parts}
             drawingName={drawingName}
-            existingVideo={aiVideo}
+            savedVideos={aiVideos ?? []}
             onVideoSaved={onVideoSaved}
             onHighlightPart={setVideoHighlightId}
             prominent
