@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+.next/
+out/
+.env*
+!.env*.example
+*.tsbuildinfo
+.vercel
+scripts/local-video-server/outputs/
+scripts/local-video-server/.venv/
