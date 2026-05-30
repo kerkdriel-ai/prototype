@@ -273,7 +273,7 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 #ar.no-cam{background:radial-gradient(circle at 50% 28%, #2D6A4F, #0a0a0a 80%);}
 #ar-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),transparent 22%,transparent 62%,rgba(0,0,0,.45));pointer-events:none;}
 #ar-stage{position:absolute;inset:0;pointer-events:none;}
-#ar-char{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);transition:transform .12s linear;
+#ar-char{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);will-change:transform;
   display:flex;flex-direction:column;align-items:center;}
 #ar-bubble{max-width:62vw;margin-bottom:12px;padding:9px 15px;border-radius:18px 18px 18px 4px;
   background:#fff;color:var(--text);font-size:14px;font-weight:600;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.3);
@@ -308,6 +308,39 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 .ar-act:active{transform:scale(.95);}
 .ar-act:disabled{opacity:.45;cursor:not-allowed;}
 .ar-act .ico{width:24px;height:24px;}
+
+/* ─── PLAYER-MADE CHARACTER ART ─── */
+.char-img{width:100%;height:100%;object-fit:contain;display:block;}
+#ar-doodle .char-img{filter:drop-shadow(0 0 5px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 4px 5px rgba(0,0,0,.35));}
+
+/* ─── CREATE A CHARACTER ─── */
+#create-fab{position:absolute;left:12px;bottom:20px;z-index:5;height:42px;padding:0 15px 0 9px;border-radius:200px;border:none;
+  background:var(--green);color:#fff;box-shadow:0 3px 12px rgba(45,106,79,.42);cursor:pointer;display:flex;align-items:center;gap:6px;
+  font-family:var(--font);font-size:13px;font-weight:700;}
+#create-fab .ico{width:22px;height:22px;}
+#create-fab .doodle path{stroke:#fff;}
+#create-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:82;padding:16px;}
+#create-modal.hidden{display:none;}
+.create-box{background:var(--cream);border-radius:28px;padding:20px;width:384px;max-width:100%;max-height:92vh;overflow-y:auto;}
+.create-head{display:flex;align-items:center;justify-content:space-between;}
+.create-title{font-family:var(--serif);font-style:italic;font-size:24px;color:var(--text);letter-spacing:-.02em;}
+.create-sub{font-size:12.5px;color:var(--muted);margin:4px 2px 14px;line-height:1.45;}
+.canvas-wrap{position:relative;width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 2px rgba(0,0,0,.07);}
+#draw-canvas{width:100%;height:100%;display:block;background:#fff;touch-action:none;cursor:crosshair;}
+.draw-tools{display:flex;align-items:center;gap:8px;margin:12px 0;}
+.swatches{display:flex;gap:6px;flex:1;flex-wrap:wrap;}
+.swatch{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.25);cursor:pointer;}
+.swatch.on{outline:2.5px solid var(--green);outline-offset:1px;}
+.tool-btn{height:36px;padding:0 11px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;
+  font-family:var(--font);font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;color:var(--text);}
+.tool-btn:hover{background:var(--green-pale);}
+.tool-btn .ico{width:16px;height:16px;}
+.create-name{width:100%;padding:12px 14px;border-radius:14px;border:1.5px solid var(--border);font-family:var(--font);
+  font-size:15px;margin-bottom:10px;background:#fff;color:var(--text);}
+.create-name:focus{outline:none;border-color:var(--green);}
+.create-place{width:100%;padding:14px;border-radius:200px;border:none;background:var(--green);color:#fff;
+  font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;transition:filter .15s;}
+.create-place:hover{filter:brightness(1.07);}
 </style>
 </head>
 <body>
@@ -330,6 +363,7 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
   <div id="map-wrap">
     <div id="map"></div>
     <button id="recenter" title="Center on me"><span class="ico" data-ico="pin"></span></button>
+    <button id="create-fab"><span class="ico" data-ico="pencil"></span> <span id="create-fab-txt">Maak</span></button>
   </div>
 
   <div id="quests">
@@ -422,6 +456,25 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
   </div>
 </div>
 
+<!-- CREATE A CHARACTER -->
+<div id="create-modal" class="hidden">
+  <div class="create-box">
+    <div class="create-head">
+      <div class="create-title" id="create-title">Maak een buur</div>
+      <button class="st-close" id="create-close">✕</button>
+    </div>
+    <div class="create-sub" id="create-sub-txt">Teken een figuur of upload er een — die krijgt vanzelf een karakter en wensen.</div>
+    <div class="canvas-wrap"><canvas id="draw-canvas" width="320" height="320"></canvas></div>
+    <div class="draw-tools">
+      <div class="swatches" id="swatches"></div>
+      <button class="tool-btn" id="tool-clear"><span class="ico" data-ico="sparkle"></span><span id="tool-clear-txt">Wissen</span></button>
+      <label class="tool-btn" id="tool-upload"><span class="ico" data-ico="camera"></span><span id="tool-upload-txt">Upload</span><input type="file" id="upload-input" accept="image/*" hidden></label>
+    </div>
+    <input id="create-name" class="create-name" placeholder="Naam" maxlength="20">
+    <button class="create-place" id="create-place">Plaats op de kaart</button>
+  </div>
+</div>
+
 <!-- INTRO -->
 <div id="intro">
   <div class="intro-box">
@@ -495,6 +548,7 @@ const STR={
     shopTitle:'The Corner Shop',shopSub:'Spend coins to stock your bag. Then walk to a neighbor and give them one.',shopOwn:'In bag: ',shopDone:'Done',
     arView:'View in AR',arHint:'Move your phone to look around',arFeed:'Feed',arPlay:'Play',arGreet:'Greet',
     questsTitle:'Main quests',qWants:'wants a',qFrom:'from',qBring:(n)=>`Bring it to ${n}`,qDone2:(n)=>`${n} is happy! +15`,qGot:(g,it)=>`${g} gave you a ${it} for the quest!`,
+    createTitle:'Create a neighbour',createSub:'Draw a character or upload one — it gets a personality and wishes automatically.',createNamePh:'Name',createPlace:'Place on the map',createDone:(n)=>`${n} joined the neighbourhood!`,customType:'Creation',createUpload:'Upload',createClear:'Clear',createBlank:'Draw something first!',createBtn:'Make',
     introTitle:'The neighborhood around you',introSub:'The characters are scattered across your <b>real surroundings</b>. You have to physically walk to them — to the end of the street, around the corner — to reach them.',
     introS1:'Allow GPS. We place 8 neighbors around your spot.',introS2:'The radar shows how far and which way to walk.',introS3:'Get within 15 metres — then you can talk and care.',
     introStart:'Start with GPS',introDemo:'Demo without GPS',introLang:'Schakel naar Nederlands',
@@ -515,6 +569,7 @@ const STR={
     shopTitle:'De Buurtwinkel',shopSub:'Geef munten uit om je tas te vullen. Loop daarna echt naar een buur en geef ze iets.',shopOwn:'In tas: ',shopDone:'Klaar',
     arView:'Bekijk in AR',arHint:'Beweeg je telefoon om rond te kijken',arFeed:'Voeren',arPlay:'Spelen',arGreet:'Groeten',
     questsTitle:'Hoofdmissies',qWants:'wil een',qFrom:'van',qBring:(n)=>`Breng het naar ${n}`,qDone2:(n)=>`${n} is blij! +15`,qGot:(g,it)=>`${g} gaf je een ${it} voor de missie!`,
+    createTitle:'Maak een buur',createSub:'Teken een figuur of upload er een — die krijgt vanzelf een karakter en wensen.',createNamePh:'Naam',createPlace:'Plaats op de kaart',createDone:(n)=>`${n} hoort er nu bij!`,customType:'Creatie',createUpload:'Upload',createClear:'Wissen',createBlank:'Teken eerst iets!',createBtn:'Maak',
     introTitle:'De buurt om je heen',introSub:'De personages staan verspreid in je <b>echte omgeving</b>. Je moet er in het echt naartoe lopen — naar het eind van de straat, om de hoek — om ze te bereiken.',
     introS1:'Sta GPS toe. We plaatsen 8 buren rondom jouw plek.',introS2:'De radar toont hoe ver en welke kant je op moet lopen.',introS3:'Kom binnen 15 meter — dan kun je praten en zorgen.',
     introStart:'Start met GPS',introDemo:'Demo zonder GPS',introLang:'Switch to English',
@@ -522,7 +577,7 @@ const STR={
 };
 const T=()=>STR[LANG];
 function itemName(k){return ITEM_NAME[LANG][k];}
-function typeName(t){return (LANG==='nl'&&TYPE_TXT.nl[t])||t;}
+function typeName(t){if(t==='__custom__')return T().customType;return (LANG==='nl'&&TYPE_TXT.nl[t])||t;}
 function prefOf(pers,k){const p=PREF[pers];if(p.loves.includes(k))return'love';if(p.likes.includes(k))return'like';return'neutral';}
 
 // ═══ CHARACTERS ═════════════════════════════════════════════════════════
@@ -530,6 +585,8 @@ function prefOf(pers,k){const p=PREF[pers];if(p.loves.includes(k))return'love';i
 // itemKey → Quick, Draw! category (balloon was rebranded to ice cream — no balloon category)
 const ITEM_CAT={flower:'flower',apple:'apple',cookie:'cookie',balloon:'ice cream',book:'book',toy:'teddy-bear',hat:'hat',gem:'diamond'};
 function idoo(k){return doodleSVG(ITEM_CAT[k]);}
+// a character's artwork — a player-made image, else the built-in doodle
+function charArt(c){return c.img?`<img class="char-img" src="${c.img}" alt="">`:doodleSVG(c.cat);}
 // inline doodle icon (replaces emoji) — `cat` is a window.DOODLES key
 function ico(cat,cls){return cat?`<span class="ico${cls?' '+cls:''}">${doodleSVG(cat)}</span>`:'';}
 // fill any static [data-ico] placeholders in the markup
@@ -546,6 +603,7 @@ let chars=[
   {name:'Floaty',type:'Cloud',   cat:'cloud',  pers:'dreamy',     emoji:'☁️',h:99},
   {name:'Gerald',type:'Cactus',  cat:'cactus', pers:'grumpy',     emoji:'🌵',h:53},
 ].map((c,i)=>({...c,id:i+1,color:CCOL[i],lat:null,lng:null,treasures:{},wish:null,dist:0,bearing:0}));
+const BASE_COUNT=chars.length;   // the 8 built-in neighbours; player creations are appended after these
 
 let coins=30;
 let bag={flower:3,apple:3,cookie:2,balloon:2,book:2,toy:1,hat:1,gem:0};
@@ -558,6 +616,48 @@ let quests=[
   {req:6, giver:8, item:'cookie', collected:false, done:false}, // Hop needs a cookie from Gerald
   {req:1, giver:2, item:'gem',    collected:false, done:false}, // Flamble needs a gem from Old Murp
 ];
+
+// ═══ PLAYER-MADE CHARACTERS ═════════════════════════════════════════════
+// Draw or upload a figure; it auto-gets a random personality + a need (wish),
+// is placed on the map and persisted in localStorage so it survives reloads.
+const CUSTOM_KEY='nbhd-custom-chars';
+const CUSTOM_NAMES=['Wobbel','Snuffel','Pluis','Bobbel','Tika','Knok','Mok','Zazu','Pim','Floef','Doris','Bram'];
+let customSeq=0;
+const PERS_KEYS=Object.keys(P_STRUCT);
+function saveCustomChars(){
+  try{const list=chars.filter(c=>c.custom).map(c=>({name:c.name,pers:c.pers,color:c.color,img:c.img,
+    lat:c.lat,lng:c.lng,h:c.h,wish:c.wish,treasures:c.treasures}));
+    localStorage.setItem(CUSTOM_KEY,JSON.stringify(list));}catch(e){}
+}
+function loadCustomChars(){
+  let list=[]; try{list=JSON.parse(localStorage.getItem(CUSTOM_KEY))||[];}catch(e){}
+  list.forEach(d=>addCustomChar(d,false));
+}
+function addCustomChar(d,save=true){
+  const c={name:d.name,type:'__custom__',cat:null,img:d.img,pers:d.pers,color:d.color,
+    h:d.h==null?70:d.h,id:1000+(++customSeq),lat:d.lat,lng:d.lng,
+    treasures:d.treasures||{},wish:d.wish||null,dist:Infinity,bearing:0,custom:true};
+  chars.push(c);
+  if(save) saveCustomChars();
+  return c;
+}
+// create a fresh neighbour from a drawing/upload, placed where the map is centred
+function createCharacter(img,name){
+  const center = map ? map.getCenter() : (me.lat!=null?{lng:me.lng,lat:me.lat}:null);
+  if(!center) return null;
+  const pers=pick(PERS_KEYS);
+  const c=addCustomChar({
+    name:(name&&name.trim())||pick(CUSTOM_NAMES),
+    pers, color:pick(CCOL), img,
+    lat:center.lat, lng:center.lng, h:70,
+    wish:pick(PREF[pers].loves)          // an immediate "need"
+  },true);
+  computeAll(); render();
+  if(map){followMe=false;document.getElementById('recenter').classList.add('show');
+    map.easeTo({center:[c.lng,c.lat],zoom:17,duration:500});}
+  toast('party',T().createDone(c.name));
+  return c;
+}
 
 // ═══ GEO STATE ══════════════════════════════════════════════════════════
 const REACH_M=15;          // must be within 15 m to interact
@@ -590,20 +690,21 @@ function offset(lat0,lng0,d,brg){
 
 // scatter the 8 characters around an origin (40–160 m), persisted so the world is stable
 function scatterAround(lat0,lng0,save=true){
-  chars.forEach((c,i)=>{
+  for(let i=0;i<BASE_COUNT;i++){
+    const c=chars[i];
     const brg=(i*45)+rnd(-18,18);          // spread roughly evenly around you
     const d=i===0?5:rnd(40,160);           // DEBUG: keep one neighbour ~5 m away (within reach)
     const p=offset(lat0,lng0,d,brg);
     c.lat=p.lat;c.lng=p.lng;
-  });
+  }
   if(save){try{localStorage.setItem('nbhd-irl-world-dbg',JSON.stringify({
-    origin:[lat0,lng0],pts:chars.map(c=>[c.lat,c.lng])
+    origin:[lat0,lng0],pts:chars.slice(0,BASE_COUNT).map(c=>[c.lat,c.lng])
   }));}catch(e){}}
 }
 function loadWorld(){
   try{const w=JSON.parse(localStorage.getItem('nbhd-irl-world-dbg'));
-    if(w&&w.pts&&w.pts.length===chars.length){
-      chars.forEach((c,i)=>{c.lat=w.pts[i][0];c.lng=w.pts[i][1];});
+    if(w&&w.pts&&w.pts.length===BASE_COUNT){
+      for(let i=0;i<BASE_COUNT;i++){chars[i].lat=w.pts[i][0];chars[i].lng=w.pts[i][1];}
       if(w.origin){const p=offset(w.origin[0],w.origin[1],5,30);chars[0].lat=p.lat;chars[0].lng=p.lng;} // DEBUG: keep neighbour 0 ~5 m away
       return true;
     }
@@ -617,6 +718,7 @@ function onPosition(lat,lng,acc){
   me.lat=lat;me.lng=lng;me.acc=acc;
   if(first && chars[0].lat===null){
     if(!loadWorld()) scatterAround(lat,lng);
+    loadCustomChars();        // restore any player-made neighbours
   }
   if(first) initMapAt(lat,lng);
   computeAll();
@@ -648,7 +750,8 @@ function startDemo(reason){
   document.getElementById('btn-demo').classList.add('on');
   // anchor at a neutral origin (Amsterdam center) and put the player in the middle
   if(me.lat===null){const o=[52.3702,4.8952];me.lat=o[0];me.lng=o[1];me.acc=5;
-    if(!loadWorld()) scatterAround(o[0],o[1]);}
+    if(!loadWorld()) scatterAround(o[0],o[1]);
+    loadCustomChars();}        // restore any player-made neighbours
   initMapAt(me.lat,me.lng);
   computeAll();
   setGps(reason==='denied'?'denied':reason==='no'?'no':'demo');
@@ -716,7 +819,7 @@ function initMapAt(lat,lng){
 
 function buildBlipEl(c){
   const el=document.createElement('div'); el.className='blip'; el.dataset.id=c.id;
-  el.innerHTML=`<div class="blip-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="blip-mood" id="bm-${c.id}"></span><span class="blip-wish" id="bw-${c.id}"></span></div><div class="blip-dist" id="bd-${c.id}"></div>`;
+  el.innerHTML=`<div class="blip-emoji" style="--c:${c.color}">${charArt(c)}<span class="blip-mood" id="bm-${c.id}"></span><span class="blip-wish" id="bw-${c.id}"></span></div><div class="blip-dist" id="bd-${c.id}"></div>`;
   el.addEventListener('click',ev=>{ev.stopPropagation();openSheet(c.id);});
   return el;
 }
@@ -760,7 +863,7 @@ function renderTarget(){
     const dir=reach?`<div class="nb-go">${T().here}</div>`
       :`<div class="nb-dir"><span class="nb-arrow" style="transform:rotate(${c.bearing-heading}deg)">↑</span> ${dirText(c.bearing)} · ${T().away}</div>`;
     return `<div class="nb-card${reach?' reach':''}" data-id="${c.id}">
-      <div class="nb-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="blip-mood" style="top:-2px;right:-6px">${c.wish?ico('bubble'):''}</span></div>
+      <div class="nb-emoji" style="--c:${c.color}">${charArt(c)}<span class="blip-mood" style="top:-2px;right:-6px">${c.wish?ico('bubble'):''}</span></div>
       <div class="nb-info">
         <div class="nb-name">${c.name} ${c.wish?`<span class="wish-tag">${ico(ITEM_CAT[c.wish])} ${T().wishL.toLowerCase()}</span>`:''}</div>
         <div class="nb-sub">${ico(ps.badge)} ${def.label} · ${typeName(c.type)}</div>
@@ -784,7 +887,7 @@ function renderSheet(){
   const c=chars.find(x=>x.id===openId);if(!c)return;
   const def=P_TEXT[LANG][c.pers],ps=P_STRUCT[c.pers],reach=c.dist<=REACH_M;
   questCollect(c,reach);   // pick up a quest item if this neighbour is the giver
-  const stE=document.getElementById('st-emoji');stE.innerHTML=doodleSVG(c.cat);stE.style.setProperty('--c',c.color);
+  const stE=document.getElementById('st-emoji');stE.innerHTML=charArt(c);stE.style.setProperty('--c',c.color);
   document.getElementById('st-name').textContent=c.name;
   document.getElementById('st-type').textContent=T().dType(typeName(c.type),def.word);
   document.getElementById('st-pers').innerHTML=ico(ps.badge)+' '+def.label;
@@ -827,6 +930,7 @@ function careAction(act){
   let amt=0,cn=0;
   if(act==='feed'){amt=25;cn=2;}if(act==='play'){amt=20;cn=3;}if(act==='greet'){amt=8;cn=1;}
   c.h=Math.min(100,c.h+amt);earn(cn);react('heart');renderSheet();renderTarget();
+  if(c.custom)saveCustomChars();
   setCareLock(true);setTimeout(()=>setCareLock(false),900);
   return true;
 }
@@ -837,6 +941,7 @@ function giveGift(k){
   if(c.wish===k){fx={h:fx.h+14,coins:fx.coins+14,react:'sparkle'};c.wish=null;ful=true;}
   c.h=Math.min(100,c.h+fx.h);c.treasures[k]=(c.treasures[k]||0)+1;
   earn(fx.coins);react(fx.react);if(pr==='love'||ful)confetti();
+  if(c.custom)saveCustomChars();
   questDeliver(c,k);       // complete a main quest if this neighbour was waiting for this item
   renderSheet();renderTarget();updateCoinUI();
 }
@@ -905,15 +1010,18 @@ function buyItem(k){if(coins<ITEM_BASE[k].cost)return;coins-=ITEM_BASE[k].cost;b
 
 // ═══ AR MODE (camera passthrough + animated doodle) ═════════════════════
 let arActive=false, arStream=null, arBaseA=null, arBaseB=null, arHopT=null, arBubbleT=null, arHintT=null;
+let arOx=0, arOy=0, arTox=0, arToy=0, arT=0, arRAF=null;   // orientation offset + depth-wander state
 const arEl=()=>document.getElementById('ar');
 
 function openAR(){
   const c=chars.find(x=>x.id===openId); if(!c) return;
   arActive=true; arBaseA=null; arBaseB=null;
+  arOx=arOy=arTox=arToy=0; arT=0;
   const el=arEl(); el.classList.remove('hidden','no-cam');
   document.getElementById('ar-name').textContent=c.name;
-  const dood=document.getElementById('ar-doodle'); dood.innerHTML=doodleSVG(c.cat); dood.style.setProperty('--c',c.color);
+  const dood=document.getElementById('ar-doodle'); dood.innerHTML=charArt(c); dood.style.setProperty('--c',c.color);
   document.getElementById('ar-char').style.transform='translate(-50%,-50%)';
+  if(!arRAF) arRAF=requestAnimationFrame(arLoop);   // depth-wander + orientation compositing
   document.getElementById('ar-bubble').classList.remove('show');
   const hint=document.getElementById('ar-hint'); hint.textContent=T().arHint; hint.classList.remove('hide');
   clearTimeout(arHintT); arHintT=setTimeout(()=>hint.classList.add('hide'),3500);
@@ -934,6 +1042,20 @@ function closeAR(){
   if(arStream){arStream.getTracks().forEach(t=>t.stop());arStream=null;}
   document.getElementById('ar-cam').srcObject=null;
   clearTimeout(arHopT); clearTimeout(arBubbleT); clearTimeout(arHintT);
+  if(arRAF){cancelAnimationFrame(arRAF);arRAF=null;}
+}
+// per-frame: ease toward the orientation target AND wander in depth (toward/away from camera)
+function arLoop(){
+  if(!arActive){arRAF=null;return;}
+  arT++;
+  arOx += (arTox-arOx)*0.15; arOy += (arToy-arOy)*0.15;     // smooth the phone-pan offset
+  const depth = 0.5 + 0.5*Math.sin(arT*0.012);              // 1 = near … 0 = far  (~9 s round trip)
+  const scale = 0.5 + depth*0.6;                            // 0.5 (walked away) … 1.1 (up close)
+  const wy = (1-depth)*-64;                                 // further away → sits higher toward the horizon
+  const wx = Math.sin(arT*0.006)*46;                        // gentle side-to-side stroll
+  const ch=document.getElementById('ar-char');
+  if(ch) ch.style.transform=`translate(-50%,-50%) translate(${(arOx+wx).toFixed(1)}px,${(arOy+wy).toFixed(1)}px) scale(${scale.toFixed(3)})`;
+  arRAF=requestAnimationFrame(arLoop);
 }
 function arHopOnce(kind){
   const ch=document.getElementById('ar-char'); if(!ch) return;
@@ -961,15 +1083,60 @@ function arAnchor(e){
   if(arBaseA==null){arBaseA=e.alpha;arBaseB=e.beta||0;}
   const dA=((e.alpha-arBaseA+540)%360)-180;        // yaw delta −180..180
   const dB=(e.beta||0)-arBaseB;                     // pitch delta
-  const x=Math.max(-innerWidth*0.55,Math.min(innerWidth*0.55,-dA*9));
-  const y=Math.max(-innerHeight*0.32,Math.min(innerHeight*0.32,dB*7));
-  document.getElementById('ar-char').style.transform=`translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+  arTox=Math.max(-innerWidth*0.55,Math.min(innerWidth*0.55,-dA*9));   // the loop eases toward these
+  arToy=Math.max(-innerHeight*0.32,Math.min(innerHeight*0.32,dB*7));
 }
 function arCare(act){
   const c=chars.find(x=>x.id===openId); if(!c||c.dist>REACH_M) return;
   if(careAction(act)){ arHopOnce('cheer'); arSay(pick(P_TEXT[LANG][c.pers].says)); } // only react if it applied
 }
 window.addEventListener('deviceorientation',arAnchor,true);
+
+// ═══ CREATE A CHARACTER (drawing canvas + upload) ═══════════════════════
+const SWATCHES=['#23201b','#E06060','#2D6A4F','#3E7CB1','#E8A33D','#C77DFF'];
+let drawCtx=null, drawing=false, brushColor=SWATCHES[0], swatchesBuilt=false;
+function buildSwatches(){
+  if(swatchesBuilt) return; swatchesBuilt=true;
+  const wrap=document.getElementById('swatches');
+  wrap.innerHTML=SWATCHES.map((col,i)=>`<span class="swatch${i===0?' on':''}" data-col="${col}" style="background:${col}"></span>`).join('');
+  wrap.addEventListener('click',e=>{const s=e.target.closest('[data-col]');if(!s)return;
+    brushColor=s.dataset.col;wrap.querySelectorAll('.swatch').forEach(x=>x.classList.toggle('on',x===s));});
+}
+function canvasPos(e){const cv=document.getElementById('draw-canvas'),r=cv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/r.width*cv.width, y:(e.clientY-r.top)/r.height*cv.height};}
+function strokeTo(p){drawCtx.lineTo(p.x,p.y);drawCtx.strokeStyle=brushColor;drawCtx.lineWidth=11;
+  drawCtx.lineCap='round';drawCtx.lineJoin='round';drawCtx.stroke();}
+function drawStart(e){e.preventDefault();drawing=true;const p=canvasPos(e);
+  drawCtx.beginPath();drawCtx.moveTo(p.x,p.y);strokeTo({x:p.x+0.01,y:p.y+0.01});}  // a tap leaves a dot
+function drawMove(e){if(!drawing)return;e.preventDefault();strokeTo(canvasPos(e));}
+function drawEnd(){drawing=false;}
+function clearCanvas(){if(drawCtx)drawCtx.clearRect(0,0,320,320);}
+function openCreate(){
+  const cv=document.getElementById('draw-canvas');
+  if(!drawCtx){drawCtx=cv.getContext('2d');
+    cv.addEventListener('pointerdown',drawStart);cv.addEventListener('pointermove',drawMove);
+    window.addEventListener('pointerup',drawEnd);cv.addEventListener('pointercancel',drawEnd);}
+  buildSwatches(); clearCanvas();
+  document.getElementById('create-name').value='';
+  document.getElementById('create-modal').classList.remove('hidden');
+}
+function closeCreate(){document.getElementById('create-modal').classList.add('hidden');}
+function loadUpload(file){
+  if(!file)return; const img=new Image();
+  img.onload=()=>{clearCanvas();const s=Math.min(320/img.width,320/img.height),w=img.width*s,h=img.height*s;
+    drawCtx.drawImage(img,(320-w)/2,(320-h)/2,w,h);URL.revokeObjectURL(img.src);};
+  img.src=URL.createObjectURL(file);
+}
+function placeCreation(){
+  const cv=document.getElementById('draw-canvas');
+  const px=drawCtx.getImageData(0,0,cv.width,cv.height).data;       // require something drawn
+  let painted=false; for(let i=3;i<px.length;i+=4){if(px[i]>10){painted=true;break;}}
+  if(!painted){toast('party',T().createBlank);return;}
+  const url=cv.toDataURL('image/png');
+  const name=document.getElementById('create-name').value;
+  closeCreate();
+  createCharacter(url,name);
+}
 
 // ═══ STRINGS ════════════════════════════════════════════════════════════
 function applyStrings(){const s=T();document.documentElement.lang=LANG;
@@ -982,6 +1149,9 @@ function applyStrings(){const s=T();document.documentElement.lang=LANG;
   set('shop-title',s.shopTitle);set('shop-sub',s.shopSub);set('shop-close',s.shopDone);
   set('lbl-ar',s.arView);set('ar-lbl-feed',s.arFeed);set('ar-lbl-play',s.arPlay);set('ar-lbl-greet',s.arGreet);
   set('quests-title-txt',s.questsTitle);renderQuests();
+  set('create-fab-txt',s.createBtn);set('create-title',s.createTitle);set('create-sub-txt',s.createSub);
+  set('create-place',s.createPlace);set('tool-clear-txt',s.createClear);set('tool-upload-txt',s.createUpload);
+  document.getElementById('create-name').placeholder=s.createNamePh;
   set('intro-title',s.introTitle);
   document.getElementById('intro-sub').innerHTML=s.introSub;
   set('intro-s1',s.introS1);set('intro-s2',s.introS2);set('intro-s3',s.introS3);
@@ -992,6 +1162,12 @@ function switchLang(l){if(l===LANG)return;LANG=l;try{localStorage.setItem('nbhd-
 
 // ═══ WIRING ═════════════════════════════════════════════════════════════
 document.getElementById('recenter').addEventListener('click',recenterOnMe);
+document.getElementById('create-fab').addEventListener('click',openCreate);
+document.getElementById('create-close').addEventListener('click',closeCreate);
+document.getElementById('create-modal').addEventListener('click',e=>{if(e.target.id==='create-modal')closeCreate();});
+document.getElementById('tool-clear').addEventListener('click',clearCanvas);
+document.getElementById('upload-input').addEventListener('change',e=>loadUpload(e.target.files&&e.target.files[0]));
+document.getElementById('create-place').addEventListener('click',placeCreation);
 document.getElementById('quests-row').addEventListener('click',e=>{
   const chip=e.target.closest('[data-q]'); if(!chip) return;
   const q=quests[+chip.dataset.q]; if(!q) return;
