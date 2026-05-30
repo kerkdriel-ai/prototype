@@ -19,6 +19,8 @@ export interface VideoStatusResponse {
   error?: string;
   prompt?: string;
   progress?: string;
+  progressPercent?: number;
+  elapsedSeconds?: number;
 }
 
 export async function startAiVideoGeneration(opts: {
@@ -83,9 +85,15 @@ export async function pollAiVideoStatus(
   return body;
 }
 
+export interface VideoProgressUpdate {
+  message: string;
+  progressPercent?: number;
+  elapsedSeconds?: number;
+}
+
 export async function waitForAiVideo(
   predictionId: string,
-  onProgress?: (status: string) => void,
+  onProgress?: (update: VideoProgressUpdate) => void,
   intervalMs = 3000,
   maxWaitMs = 600_000
 ): Promise<string> {
@@ -105,14 +113,17 @@ export async function waitForAiVideo(
       throw new Error(result.error ?? "Video-generatie mislukt");
     }
 
-    onProgress?.(
-      result.progress ??
+    onProgress?.({
+      message:
+        result.progress ??
         (result.status === "starting"
           ? "Video wordt gestart..."
           : isLocal
             ? "Lokaal model genereert video..."
-            : "Video wordt gegenereerd...")
-    );
+            : "Video wordt gegenereerd..."),
+      progressPercent: result.progressPercent,
+      elapsedSeconds: result.elapsedSeconds,
+    });
 
     await new Promise((r) => setTimeout(r, pollInterval));
   }

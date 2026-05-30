@@ -14,6 +14,7 @@ export type AnimationPreset =
 export type VideoMotionStyle = "magical" | "playful" | "gentle";
 
 export interface AiVideoRecord {
+  id?: string;
   url: string;
   prompt: string;
   style: VideoMotionStyle;
@@ -53,6 +54,7 @@ export interface AnimationScriptRecord {
   script: string;
   moments: Array<{ label: string; beat: string }>;
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface Drawing {
@@ -65,7 +67,9 @@ export interface Drawing {
   createdAt: number;
   updatedAt: number;
   segmentCacheKey?: string;
+  /** @deprecated gebruik aiVideos */
   aiVideo?: AiVideoRecord;
+  aiVideos?: AiVideoRecord[];
   animationScript?: AnimationScriptRecord;
 }
 

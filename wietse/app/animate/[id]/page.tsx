@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PageShell, StreetViewLink, ScriptLink } from "@/components/Header";
 import { getDrawing, saveDrawing } from "@/lib/db";
+import { appendVideoToDrawing, getDrawingVideos } from "@/lib/video-history";
 import type { StoredDrawing } from "@/lib/db";
 import type { Part, AiVideoRecord } from "@/types/drawing";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,7 +48,10 @@ export default function AnimatePage() {
   const handleVideoSaved = useCallback(
     async (video: AiVideoRecord) => {
       if (!drawing) return;
-      const updated = { ...drawing, aiVideo: video, updatedAt: Date.now() };
+      const updated = {
+        ...appendVideoToDrawing(drawing, video),
+        updatedAt: Date.now(),
+      };
       setDrawing(updated);
       await saveDrawing(updated);
     },
@@ -83,7 +87,7 @@ export default function AnimatePage() {
         onPartUpdate={handlePartUpdate}
         drawingExport={drawing}
         drawingName={drawing.name.replace(/\s+/g, "-").toLowerCase()}
-        aiVideo={drawing.aiVideo}
+        aiVideos={getDrawingVideos(drawing)}
         onVideoSaved={handleVideoSaved}
       />
     </PageShell>
