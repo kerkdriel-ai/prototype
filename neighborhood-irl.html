@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Neighborhood — Real Life</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{
@@ -50,28 +52,43 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 #gps-text{flex:1;min-width:0;}
 #gps-text b{color:var(--text);font-weight:700;}
 
-/* ─── RADAR ─── */
-#radar-wrap{flex-shrink:0;display:flex;justify-content:center;padding:14px 0 4px;}
-#radar{position:relative;width:min(82vw,360px);aspect-ratio:1;border-radius:50%;
-  background:radial-gradient(circle at 50% 42%, #E4F1DE, #CDE7C8 78%);
-  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6), 0 10px 34px rgba(45,106,79,.18);overflow:hidden;}
-.ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(45,106,79,.16);}
-.ring-label{position:absolute;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(45,106,79,.45);font-weight:700;letter-spacing:.05em;}
-.cardinal{position:absolute;font-size:11px;font-weight:800;color:rgba(45,106,79,.5);}
-.card-n{top:7px;left:50%;transform:translateX(-50%);} .card-s{bottom:7px;left:50%;transform:translateX(-50%);}
-.card-e{right:9px;top:50%;transform:translateY(-50%);} .card-w{left:9px;top:50%;transform:translateY(-50%);}
-#radar-rot{position:absolute;inset:0;transition:transform .25s ease-out;}
-#sweep{position:absolute;top:50%;left:50%;width:50%;height:50%;transform-origin:top left;
-  background:conic-gradient(from 0deg, rgba(45,106,79,.12), transparent 38%);pointer-events:none;animation:radarSweep 4s linear infinite;}
-@keyframes radarSweep{to{transform:rotate(360deg);}}
-#me{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;}
-#me-cone{position:absolute;top:50%;left:50%;width:0;height:0;transform:translate(-50%,-100%);
-  border-left:13px solid transparent;border-right:13px solid transparent;border-bottom:30px solid rgba(45,106,79,.32);}
-#me-dot{width:18px;height:18px;border-radius:50%;background:var(--green-light);box-shadow:0 0 0 4px rgba(116,198,157,.25),0 2px 6px rgba(0,0,0,.4);position:relative;z-index:2;}
-.blip{position:absolute;transform:translate(-50%,-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:2px;transition:left .4s ease-out,top .4s ease-out;cursor:pointer;}
-.blip-emoji{position:relative;width:46px;height:46px;padding:7px;display:flex;align-items:center;justify-content:center;border-radius:50%;
-  background:var(--c,#CDE7C8);box-shadow:0 3px 7px rgba(0,0,0,.18),inset 0 0 0 2px rgba(255,255,255,.5);animation:bob 2.6s ease-in-out infinite;}
+/* ─── MAP ─── */
+#map-wrap{flex-shrink:0;position:relative;width:100%;height:clamp(230px,40vh,400px);background:#CDE7C8;
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.06), 0 10px 28px rgba(45,106,79,.12);}
+#map{position:absolute;inset:0;}
+#map canvas{outline:none;}
+.maplibregl-ctrl-attrib{font-size:9px;opacity:.7;}
+.maplibregl-ctrl-bottom-left{display:none;}
+#recenter{position:absolute;right:12px;bottom:24px;z-index:5;width:42px;height:42px;border-radius:50%;border:none;
+  background:#fff;box-shadow:0 3px 10px rgba(0,0,0,.22);cursor:pointer;display:none;align-items:center;justify-content:center;padding:9px;color:var(--green);}
+#recenter.show{display:flex;}
+#recenter .ico{width:100%;height:100%;}
+/* player marker — only the dot is in flow so MapLibre anchors on it; the cone floats above */
+#me-marker{pointer-events:none;position:relative;}
+#me-cone{position:absolute;left:50%;top:50%;width:0;height:0;transform:translate(-50%,-100%);transform-origin:50% 100%;
+  border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:28px solid rgba(45,106,79,.45);}
+#me-dot{width:18px;height:18px;border-radius:50%;background:var(--green-light);
+  box-shadow:0 0 0 4px rgba(116,198,157,.3),0 2px 6px rgba(0,0,0,.45);position:relative;z-index:2;}
+/* character markers (MapLibre positions the root element) */
+.blip{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;}
+.blip-emoji{position:relative;width:44px;height:44px;padding:7px;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:var(--c,#CDE7C8);box-shadow:0 3px 8px rgba(0,0,0,.3),inset 0 0 0 2px rgba(255,255,255,.6);animation:bob 2.6s ease-in-out infinite;}
 .doodle{display:block;width:100%;height:100%;}
+/* inline doodle icon — replaces emoji throughout */
+.ico{display:inline-block;width:1.05em;height:1.05em;vertical-align:-0.18em;line-height:0;}
+.ico .doodle{width:100%;height:100%;}
+.tb-logo .ico{width:22px;height:22px;vertical-align:-0.22em;}
+#coin-pill .ico,.shop-coins .ico,.tb-btn .ico,.wish-tag .ico{width:1.15em;height:1.15em;}
+.act .ae.ico{width:24px;height:24px;}
+.intro-step .ise.ico{width:24px;height:24px;flex-shrink:0;}
+.intro-box .big .ico{width:46px;height:46px;}
+.intro-start .ico{width:1.2em;height:1.2em;}
+.nb-dist .ico{width:18px;height:18px;}
+.blip-mood .ico,.blip-wish .ico{width:13px;height:13px;}
+.coin-fx .ico{width:0.9em;height:0.9em;vertical-align:-0.12em;}
+.react-fx .ico{width:34px;height:34px;}
+/* coin sits on the green buy button — draw it white */
+.si-buy .doodle path{stroke:#fff;}
 @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
 .blip-dist{font-size:10px;font-weight:800;color:#fff;background:rgba(26,26,26,.72);padding:2px 7px;border-radius:200px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .blip.near .blip-dist{background:var(--green);}
@@ -223,12 +240,12 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 <body>
 <div class="wrap">
   <div id="topbar">
-    <div class="tb-logo">🛰️ <span id="logo-txt">Buurt IRL</span></div>
+    <div class="tb-logo"><span class="ico" data-ico="satellite"></span> <span id="logo-txt">Buurt IRL</span></div>
     <div class="tb-right">
-      <div id="coin-pill"><span>🪙</span><span id="coin-count">30</span></div>
-      <button class="tb-btn" id="btn-shop">🎒</button>
-      <button class="tb-btn" id="btn-demo" title="Demo">🎮</button>
-      <button class="tb-btn" id="btn-lang">🌐 NL</button>
+      <div id="coin-pill"><span class="ico" data-ico="coin"></span><span id="coin-count">30</span></div>
+      <button class="tb-btn" id="btn-shop"><span class="ico" data-ico="bag"></span></button>
+      <button class="tb-btn" id="btn-demo" title="Demo"><span class="ico" data-ico="gamepad"></span></button>
+      <button class="tb-btn" id="btn-lang"><span class="ico" data-ico="globe"></span> <span id="lang-code">NL</span></button>
     </div>
   </div>
 
@@ -237,22 +254,9 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
     <span id="gps-text">GPS wordt gestart…</span>
   </div>
 
-  <div id="radar-wrap">
-    <div id="radar">
-      <div class="ring" style="width:33%;height:33%"></div>
-      <div class="ring" style="width:66%;height:66%"></div>
-      <div class="ring" style="width:99%;height:99%"></div>
-      <div class="ring-label" id="ring-l1" style="top:50%;margin-top:-8.5%;">·</div>
-      <div class="ring-label" id="ring-l2" style="top:50%;margin-top:-25%;">·</div>
-      <div class="ring-label" id="ring-l3" style="top:50%;margin-top:-41.5%;">·</div>
-      <div id="radar-rot">
-        <span class="cardinal card-n">N</span><span class="cardinal card-e">O</span>
-        <span class="cardinal card-s">Z</span><span class="cardinal card-w">W</span>
-        <div id="blips"></div>
-      </div>
-      <div id="sweep"></div>
-      <div id="me"><div id="me-cone"></div><div id="me-dot"></div></div>
-    </div>
+  <div id="map-wrap">
+    <div id="map"></div>
+    <button id="recenter" title="Center on me"><span class="ico" data-ico="pin"></span></button>
   </div>
 
   <div id="target">
@@ -270,14 +274,14 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 </div>
 
 <!-- toast -->
-<div id="toast"><span id="toast-emoji">🎉</span><span id="toast-txt"></span></div>
+<div id="toast"><span id="toast-emoji"></span><span id="toast-txt"></span></div>
 
 <!-- INTERACTION SHEET -->
 <div id="sheet-scrim"></div>
 <div id="sheet">
   <div class="sheet-grab"></div>
   <div class="sheet-top">
-    <div class="st-emoji" id="st-emoji">🐉</div>
+    <div class="st-emoji" id="st-emoji"></div>
     <div class="st-id">
       <div class="st-name" id="st-name">—</div>
       <div class="st-type" id="st-type">—</div>
@@ -290,11 +294,11 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
     <div class="h-row"><div class="h-bar"><div class="h-fill" id="st-hfill"></div></div><div class="h-pct" id="st-hpct">—</div></div>
     <div id="st-locked" style="display:none"><div class="sec-title" id="lbl-locked">Te ver weg</div><div class="locked-note" id="locked-note"></div></div>
     <div id="st-wish-sec" style="display:none"><div class="sec-title" id="lbl-wish">Wens</div><div class="wish-banner" id="st-wish"></div></div>
-    <div class="sec-title" id="lbl-care">Geef aandacht <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert 🪙 op</span></div>
+    <div class="sec-title" id="lbl-care">Geef aandacht <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert <span class="ico" data-ico="coin"></span> op</span></div>
     <div class="actions">
-      <button class="act primary" data-act="feed"><span class="ae">🍎</span><span id="lbl-feed">Voeren</span><span class="plus">+2🪙</span></button>
-      <button class="act" data-act="play"><span class="ae">🎮</span><span id="lbl-play">Spelen</span><span class="plus">+3🪙</span></button>
-      <button class="act" data-act="greet"><span class="ae">👋</span><span id="lbl-greet">Groeten</span><span class="plus">+1🪙</span></button>
+      <button class="act primary" data-act="feed"><span class="ae ico" data-ico="apple"></span><span id="lbl-feed">Voeren</span><span class="plus">+2<span class="ico" data-ico="coin"></span></span></button>
+      <button class="act" data-act="play"><span class="ae ico" data-ico="gamepad"></span><span id="lbl-play">Spelen</span><span class="plus">+3<span class="ico" data-ico="coin"></span></span></button>
+      <button class="act" data-act="greet"><span class="ae ico" data-ico="hand"></span><span id="lbl-greet">Groeten</span><span class="plus">+1<span class="ico" data-ico="coin"></span></span></button>
     </div>
     <div class="sec-title" id="lbl-give">Geef een cadeau</div>
     <div class="give-grid" id="give-grid"></div>
@@ -309,7 +313,7 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 <!-- SHOP -->
 <div id="shop-modal" class="hidden">
   <div class="shop-box">
-    <div class="shop-head"><div class="shop-title" id="shop-title">De Buurtwinkel</div><div class="shop-coins">🪙 <span id="shop-coin-count">30</span></div></div>
+    <div class="shop-head"><div class="shop-title" id="shop-title">De Buurtwinkel</div><div class="shop-coins"><span class="ico" data-ico="coin"></span> <span id="shop-coin-count">30</span></div></div>
     <div class="shop-sub" id="shop-sub">Geef munten uit om je tas te vullen. Loop daarna echt naar een buur en geef ze iets.</div>
     <div class="shop-grid" id="shop-grid"></div>
     <button class="shop-close" id="shop-close">Klaar</button>
@@ -319,17 +323,17 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 <!-- INTRO -->
 <div id="intro">
   <div class="intro-box">
-    <div class="big">🛰️🚶</div>
+    <div class="big"><span class="ico" data-ico="satellite"></span><span class="ico" data-ico="walk"></span></div>
     <h1 id="intro-title">De buurt om je heen</h1>
     <p id="intro-sub">De personages staan verspreid in je <b>echte omgeving</b>. Je moet er in het echt naartoe lopen — naar het eind van de straat, om de hoek — om ze te bereiken.</p>
     <div class="intro-steps">
-      <div class="intro-step"><span class="ise">📍</span><span id="intro-s1">Sta GPS toe. We plaatsen 8 buren rondom jouw plek.</span></div>
-      <div class="intro-step"><span class="ise">🧭</span><span id="intro-s2">De radar toont hoe ver en welke kant je op moet lopen.</span></div>
-      <div class="intro-step"><span class="ise">🚶</span><span id="intro-s3">Loop tot binnen 15 meter — dan kun je praten en zorgen.</span></div>
+      <div class="intro-step"><span class="ise ico" data-ico="pin"></span><span id="intro-s1">Sta GPS toe. We plaatsen 8 buren rondom jouw plek.</span></div>
+      <div class="intro-step"><span class="ise ico" data-ico="compass"></span><span id="intro-s2">De radar toont hoe ver en welke kant je op moet lopen.</span></div>
+      <div class="intro-step"><span class="ise ico" data-ico="walk"></span><span id="intro-s3">Loop tot binnen 15 meter — dan kun je praten en zorgen.</span></div>
     </div>
-    <button class="intro-start" id="intro-start">📍 <span id="intro-start-txt">Start met GPS</span></button>
+    <button class="intro-start" id="intro-start"><span class="ico" data-ico="pin"></span> <span id="intro-start-txt">Start met GPS</span></button>
     <div class="intro-row">
-      <button class="intro-2nd" id="intro-demo" >🎮 <span id="intro-demo-txt">Demo zonder GPS</span></button>
+      <button class="intro-2nd" id="intro-demo" ><span class="ico" data-ico="gamepad"></span> <span id="intro-demo-txt">Demo zonder GPS</span></button>
     </div>
     <button class="intro-lang" id="intro-lang">Switch to English</button>
   </div>
@@ -340,9 +344,9 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 // ═══ LANGUAGE & DATA (shared with the other views) ═══════════════════════
 let LANG=localStorage.getItem('nbhd-lang')||'nl';
 const P_STRUCT={
-  adventurous:{badge:'🗺️',decay:11}, wise:{badge:'📚',decay:7}, gentle:{badge:'🌿',decay:9},
-  mischievous:{badge:'😈',decay:14}, shy:{badge:'🌱',decay:9}, playful:{badge:'🎉',decay:18},
-  dreamy:{badge:'🌙',decay:5}, grumpy:{badge:'😤',decay:11},
+  adventurous:{badge:'map',decay:11}, wise:{badge:'book',decay:7}, gentle:{badge:'leaf',decay:9},
+  mischievous:{badge:'mischief',decay:14}, shy:{badge:'leaf',decay:9}, playful:{badge:'party',decay:18},
+  dreamy:{badge:'moon',decay:5}, grumpy:{badge:'grumpy',decay:11},
 };
 const P_TEXT={
   en:{
@@ -371,7 +375,7 @@ const ITEM_NAME={en:{flower:'Flower',apple:'Apple',cookie:'Cookie',balloon:'Ice 
 const ITEM_KEYS=Object.keys(ITEM_BASE);
 const TYPE_TXT={nl:{Dragon:'Draak',Owl:'Uil',Cow:'Koe',Monkey:'Aap',Mermaid:'Zeemeermin',Rabbit:'Konijn',Cloud:'Wolk',Cactus:'Cactus'}};
 const PREF={adventurous:{loves:['gem'],likes:['hat','book']},wise:{loves:['book'],likes:['gem']},gentle:{loves:['flower'],likes:['cookie','apple']},mischievous:{loves:['hat'],likes:['toy','balloon']},shy:{loves:['flower'],likes:['book']},playful:{loves:['balloon','toy'],likes:['cookie']},dreamy:{loves:['balloon'],likes:['flower','gem']},grumpy:{loves:['cookie'],likes:['apple']}};
-const GIFT_BASE={love:{h:28,coins:12,react:'💖'},like:{h:16,coins:6,react:'😊'},neutral:{h:8,coins:2,react:'🙂'}};
+const GIFT_BASE={love:{h:28,coins:12,react:'heart'},like:{h:16,coins:6,react:'smile'},neutral:{h:8,coins:2,react:'smile'}};
 const STR={
   en:{logo:'Neighborhood IRL',gpsStart:'Starting GPS…',gpsLive:(a)=>`Live · accuracy ±${a} m`,gpsWarn:'Weak signal — go outside for a better fix.',gpsDenied:'Location blocked. Using demo mode — move with the D-pad.',gpsNo:'No GPS on this device. Demo mode active.',gpsDemo:'Demo mode · move with the D-pad or arrow keys',
     searching:'Looking for neighbors nearby…',
@@ -383,9 +387,9 @@ const STR={
     care:'Give attention',giveT:'Give a gift',who:'Who they are',treasures:'Gifts they\'ve been given',
     feed:'Feed',play:'Play',greet:'Greet',wishL:'Wish',
     treasureEmpty:'No gifts yet — give them something they\'ll love.',
-    dType:(t,w)=>`${t} · ${w}`,sAwake:'🙂 Out and about, somewhere near you.',
+    dType:(t,w)=>`${t} · ${w}`,sAwake:'Out and about, somewhere near you.',
     sayLove:'I love it!!',sayLike:'Thank you!',sayMeh:'Oh, thanks.',
-    wishWant:(it)=>`They'd <b>love</b> a ${it}.`,wishReward:'Fulfilling a wish: bonus 🪙 + big happiness boost.',
+    wishWant:(it)=>`They'd <b>love</b> a ${it}.`,wishReward:'Fulfilling a wish: bonus <span class="ico" data-ico="coin"></span> + big happiness boost.',
     shopTitle:'The Corner Shop',shopSub:'Spend coins to stock your bag. Then walk to a neighbor and give them one.',shopOwn:'In bag: ',shopDone:'Done',
     introTitle:'The neighborhood around you',introSub:'The characters are scattered across your <b>real surroundings</b>. You have to physically walk to them — to the end of the street, around the corner — to reach them.',
     introS1:'Allow GPS. We place 8 neighbors around your spot.',introS2:'The radar shows how far and which way to walk.',introS3:'Get within 15 metres — then you can talk and care.',
@@ -401,9 +405,9 @@ const STR={
     care:'Geef aandacht',giveT:'Geef een cadeau',who:'Wie ze zijn',treasures:'Gekregen cadeaus',
     feed:'Voeren',play:'Spelen',greet:'Groeten',wishL:'Wens',
     treasureEmpty:'Nog geen cadeaus — geef ze iets wat ze geweldig vinden.',
-    dType:(t,w)=>`${t} · ${w}`,sAwake:'🙂 Ergens dicht bij jou in de buurt.',
+    dType:(t,w)=>`${t} · ${w}`,sAwake:'Ergens dicht bij jou in de buurt.',
     sayLove:'Ik vind het geweldig!!',sayLike:'Dank je wel!',sayMeh:'Oh, bedankt.',
-    wishWant:(it)=>`Ze zouden <b>dolblij</b> zijn met een ${it}.`,wishReward:'Een wens vervullen: bonus 🪙 + flinke blijdschap-boost.',
+    wishWant:(it)=>`Ze zouden <b>dolblij</b> zijn met een ${it}.`,wishReward:'Een wens vervullen: bonus <span class="ico" data-ico="coin"></span> + flinke blijdschap-boost.',
     shopTitle:'De Buurtwinkel',shopSub:'Geef munten uit om je tas te vullen. Loop daarna echt naar een buur en geef ze iets.',shopOwn:'In tas: ',shopDone:'Klaar',
     introTitle:'De buurt om je heen',introSub:'De personages staan verspreid in je <b>echte omgeving</b>. Je moet er in het echt naartoe lopen — naar het eind van de straat, om de hoek — om ze te bereiken.',
     introS1:'Sta GPS toe. We plaatsen 8 buren rondom jouw plek.',introS2:'De radar toont hoe ver en welke kant je op moet lopen.',introS3:'Kom binnen 15 meter — dan kun je praten en zorgen.',
@@ -420,6 +424,10 @@ function prefOf(pers,k){const p=PREF[pers];if(p.loves.includes(k))return'love';i
 // itemKey → Quick, Draw! category (balloon was rebranded to ice cream — no balloon category)
 const ITEM_CAT={flower:'flower',apple:'apple',cookie:'cookie',balloon:'ice cream',book:'book',toy:'teddy-bear',hat:'hat',gem:'diamond'};
 function idoo(k){return doodleSVG(ITEM_CAT[k]);}
+// inline doodle icon (replaces emoji) — `cat` is a window.DOODLES key
+function ico(cat,cls){return cat?`<span class="ico${cls?' '+cls:''}">${doodleSVG(cat)}</span>`:'';}
+// fill any static [data-ico] placeholders in the markup
+function paintIcons(root){(root||document).querySelectorAll('[data-ico]').forEach(e=>{e.innerHTML=doodleSVG(e.dataset.ico);});}
 // per-character pastel palette — matches the brand cards in neighborhood-drawings.html
 const CCOL=['#B7E4C7','#FFD6E8','#FFF570','#A3DAF5','#FFCBA4','#D9B8F5','#F5E6D3','#C8E6C9'];
 let chars=[
@@ -491,6 +499,7 @@ function onPosition(lat,lng,acc){
   if(first && chars[0].lat===null){
     if(!loadWorld()) scatterAround(lat,lng);
   }
+  if(first) initMapAt(lat,lng);
   computeAll();
   setGps(demo?'demo':'live');
   render();
@@ -521,6 +530,7 @@ function startDemo(reason){
   // anchor at a neutral origin (Amsterdam center) and put the player in the middle
   if(me.lat===null){const o=[52.3702,4.8952];me.lat=o[0];me.lng=o[1];me.acc=5;
     if(!loadWorld()) scatterAround(o[0],o[1]);}
+  initMapAt(me.lat,me.lng);
   computeAll();
   setGps(reason==='denied'?'denied':reason==='no'?'no':'demo');
   render();
@@ -539,7 +549,7 @@ function onOrient(e){
   let h=null;
   if(typeof e.webkitCompassHeading==='number') h=e.webkitCompassHeading;
   else if(e.absolute&&typeof e.alpha==='number') h=360-e.alpha;
-  if(h!=null){heading=h;document.getElementById('radar-rot').style.transform=`rotate(${-heading}deg)`;}
+  if(h!=null){heading=h;const cone=document.getElementById('me-cone');if(cone)cone.style.transform=`translate(-50%,-100%) rotate(${heading}deg)`;}
 }
 
 function setGps(state){
@@ -553,42 +563,68 @@ function setGps(state){
 }
 
 // ═══ RENDER ═════════════════════════════════════════════════════════════
-function moodFor(c){if(c.h>=80)return'✨';if(c.h>=55)return'';if(c.h>=30)return'🥱';return'😢';}
+function moodFor(c){if(c.h>=80)return'sparkle';if(c.h>=55)return'';if(c.h>=30)return'sleepy';return'sad';}
 function hColor(h){return h>=70?'#74C69D':h>=40?'#D4C84A':h>=15?'#F4A261':'#E06060';}
 function fmtDist(d){return d<1000?Math.round(d):(d/1000).toFixed(1)+'k';}
 function dirText(b){const dirs=LANG==='nl'?['N','NO','O','ZO','Z','ZW','W','NW']:['N','NE','E','SE','S','SW','W','NW'];return dirs[Math.round(b/45)%8];}
 
-function render(){
-  const blips=document.getElementById('blips');
-  const radarR=document.getElementById('radar').clientWidth/2 || 160;
-  chars.forEach(c=>{
-    let el=blips.querySelector(`.blip[data-id="${c.id}"]`);
-    if(!el){el=document.createElement('div');el.className='blip';el.dataset.id=c.id;
-      el.innerHTML=`<div class="blip-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="blip-mood" id="bm-${c.id}"></span><span class="blip-wish" id="bw-${c.id}"></span></div><div class="blip-dist" id="bd-${c.id}"></div>`;
-      el.addEventListener('click',()=>openSheet(c.id));blips.appendChild(el);}
-    const reach=c.dist<=REACH_M, edge=c.dist>RADAR_RANGE;
-    const rr=Math.min(c.dist/RADAR_RANGE,1)*(radarR-22);
-    const ang=(c.bearing)*Math.PI/180;
-    const x=radarR+Math.sin(ang)*rr, y=radarR-Math.cos(ang)*rr;
-    el.style.left=x+'px';el.style.top=y+'px';
-    el.classList.toggle('near',c.dist<=40);
-    el.classList.toggle('reach',reach);
-    el.classList.toggle('edge',edge);
-    // counter-rotate emoji so it stays upright while the ring rotates with heading
-    el.querySelector('.blip-emoji').style.transform=`rotate(${heading}deg)`;
-    el.querySelector('.blip-dist').style.transform=`rotate(${heading}deg)`;
-    document.getElementById('bm-'+c.id).textContent=moodFor(c);
-    document.getElementById('bw-'+c.id).textContent=c.wish?'💭':'';
-    document.getElementById('bd-'+c.id).textContent=reach?(LANG==='nl'?'hier':'here'):fmtDist(c.dist)+'m';
-  });
-  // ring labels
-  document.getElementById('ring-l1').textContent=Math.round(RADAR_RANGE/3)+'m';
-  document.getElementById('ring-l2').textContent=Math.round(RADAR_RANGE*2/3)+'m';
-  document.getElementById('ring-l3').textContent=RADAR_RANGE+'m';
-  // cardinals localized
-  document.querySelector('.card-n').textContent=T().cardN;document.querySelector('.card-e').textContent=T().cardE;
-  document.querySelector('.card-s').textContent=T().cardS;document.querySelector('.card-w').textContent=T().cardW;
+// ═══ MAP (MapLibre — real surroundings at your location) ═════════════════
+let map=null, mapReady=false, charMarkers={}, meMarker=null, followMe=true;
 
+function initMapAt(lat,lng){
+  if(map||typeof maplibregl==='undefined') return;
+  map=new maplibregl.Map({
+    container:'map',
+    // raster basemap of the real world — no API key needed
+    style:{version:8,
+      sources:{base:{type:'raster',
+        tiles:['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+               'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+               'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
+        tileSize:256, attribution:'© OpenStreetMap © CARTO'}},
+      layers:[{id:'base',type:'raster',source:'base'}]},
+    center:[lng,lat], zoom:16.5, attributionControl:true, dragRotate:false
+  });
+  try{map.touchZoomRotate.disableRotation();}catch(e){}
+  // player marker — only the dot is in flow so MapLibre anchors on it; the cone floats above
+  const meEl=document.createElement('div'); meEl.id='me-marker';
+  meEl.innerHTML='<div id="me-cone"></div><div id="me-dot"></div>';
+  meMarker=new maplibregl.Marker({element:meEl}).setLngLat([lng,lat]).addTo(map);
+  // stop auto-following once the user pans/zooms the map themselves
+  map.on('dragstart',()=>{followMe=false;document.getElementById('recenter').classList.add('show');});
+  map.on('load',()=>{mapReady=true;render();});
+}
+
+function buildBlipEl(c){
+  const el=document.createElement('div'); el.className='blip'; el.dataset.id=c.id;
+  el.innerHTML=`<div class="blip-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="blip-mood" id="bm-${c.id}"></span><span class="blip-wish" id="bw-${c.id}"></span></div><div class="blip-dist" id="bd-${c.id}"></div>`;
+  el.addEventListener('click',ev=>{ev.stopPropagation();openSheet(c.id);});
+  return el;
+}
+
+function recenterOnMe(){
+  if(!map||me.lat===null) return;
+  followMe=true; document.getElementById('recenter').classList.remove('show');
+  map.easeTo({center:[me.lng,me.lat],duration:500});
+}
+
+function render(){
+  if(map&&mapReady){
+    chars.forEach(c=>{
+      if(c.lat===null) return;
+      let m=charMarkers[c.id];
+      if(!m){m=new maplibregl.Marker({element:buildBlipEl(c)}).setLngLat([c.lng,c.lat]).addTo(map);charMarkers[c.id]=m;}
+      else m.setLngLat([c.lng,c.lat]);
+      const el=m.getElement(), reach=c.dist<=REACH_M;
+      el.classList.toggle('near',c.dist<=40);
+      el.classList.toggle('reach',reach);
+      const bm=document.getElementById('bm-'+c.id); if(bm)bm.innerHTML=ico(moodFor(c));
+      const bw=document.getElementById('bw-'+c.id); if(bw)bw.innerHTML=c.wish?ico('bubble'):'';
+      const bd=document.getElementById('bd-'+c.id); if(bd)bd.textContent=reach?(LANG==='nl'?'hier':'here'):fmtDist(c.dist)+'m';
+    });
+    if(meMarker&&me.lat!==null) meMarker.setLngLat([me.lng,me.lat]);
+    if(followMe&&me.lat!==null) map.setCenter([me.lng,me.lat]);
+  }
   renderTarget();
   if(openId!=null) renderSheet();
 }
@@ -600,15 +636,15 @@ function renderTarget(){
   let html=`<div class="tg-hint" style="padding:6px 10px 12px">${T().hintWalk}</div>`;
   html+=sorted.map(c=>{
     const reach=c.dist<=REACH_M, def=P_TEXT[LANG][c.pers], ps=P_STRUCT[c.pers];
-    const distHtml=reach?`<div class="nb-dist" style="font-size:15px;">📍</div>`
+    const distHtml=reach?`<div class="nb-dist" style="font-size:15px;">${ico('pin')}</div>`
       :`<div class="nb-dist">${fmtDist(c.dist)}<small>m</small></div>`;
     const dir=reach?`<div class="nb-go">${T().here}</div>`
       :`<div class="nb-dir"><span class="nb-arrow" style="transform:rotate(${c.bearing-heading}deg)">↑</span> ${dirText(c.bearing)} · ${T().away}</div>`;
     return `<div class="nb-card${reach?' reach':''}" data-id="${c.id}">
-      <div class="nb-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="blip-mood" style="top:-2px;right:-6px">${c.wish?'💭':''}</span></div>
+      <div class="nb-emoji" style="--c:${c.color}">${doodleSVG(c.cat)}<span class="blip-mood" style="top:-2px;right:-6px">${c.wish?ico('bubble'):''}</span></div>
       <div class="nb-info">
-        <div class="nb-name">${c.name} ${c.wish?`<span class="wish-tag">${ITEM_BASE[c.wish].emoji} ${T().wishL.toLowerCase()}</span>`:''}</div>
-        <div class="nb-sub">${ps.badge} ${def.label} · ${typeName(c.type)}</div>
+        <div class="nb-name">${c.name} ${c.wish?`<span class="wish-tag">${ico(ITEM_CAT[c.wish])} ${T().wishL.toLowerCase()}</span>`:''}</div>
+        <div class="nb-sub">${ico(ps.badge)} ${def.label} · ${typeName(c.type)}</div>
         <div class="nb-h"><span style="width:${Math.round(c.h)}%;background:${hColor(c.h)}"></span></div>
       </div>
       <div class="nb-right">${distHtml}${dir}</div>
@@ -631,8 +667,8 @@ function renderSheet(){
   const stE=document.getElementById('st-emoji');stE.innerHTML=doodleSVG(c.cat);stE.style.setProperty('--c',c.color);
   document.getElementById('st-name').textContent=c.name;
   document.getElementById('st-type').textContent=T().dType(typeName(c.type),def.word);
-  document.getElementById('st-pers').textContent=ps.badge+' '+def.label;
-  document.getElementById('st-status').innerHTML=reach?T().sAwake:`📍 ${fmtDist(c.dist)} m ${T().away} · ${dirText(c.bearing)}`;
+  document.getElementById('st-pers').innerHTML=ico(ps.badge)+' '+def.label;
+  document.getElementById('st-status').innerHTML=reach?`${ico('smile')} ${T().sAwake}`:`${ico('pin')} ${fmtDist(c.dist)} m ${T().away} · ${dirText(c.bearing)}`;
   const hp=Math.round(c.h);
   document.getElementById('st-hfill').style.cssText=`width:${hp}%;background:${hColor(c.h)}`;
   document.getElementById('st-hpct').textContent=hp+'%';
@@ -651,7 +687,7 @@ function renderSheet(){
   document.querySelectorAll('.actions .act').forEach(b=>b.disabled=!reach);
   // gifts
   document.getElementById('give-grid').innerHTML=ITEM_KEYS.map(k=>{
-    const n=bag[k]||0,pr=prefOf(c.pers,k),heart=pr==='love'?'💚':pr==='like'?'🙂':'';
+    const n=bag[k]||0,pr=prefOf(c.pers,k),heart=pr==='love'?ico('heart'):pr==='like'?ico('smile'):'';
     const dis=(!reach||n<=0);
     return `<div class="item-chip${dis?' empty':''}" data-give="${k}">
       ${heart?`<span class="ic-pref">${heart}</span>`:''}<span class="ic-count">${n}</span>
@@ -661,32 +697,33 @@ function renderSheet(){
   document.getElementById('st-treasures').innerHTML=keys.length
     ? keys.map(k=>`<span class="treasure"><span class="tdood">${idoo(k)}</span><span class="tc">${c.treasures[k]}</span></span>`).join('')
     : `<span class="treasure-empty">${T().treasureEmpty}</span>`;
+  paintIcons(document.getElementById('sheet')); // fill any data-ico placeholders from string data
 }
 function careAction(act){
   const c=chars.find(x=>x.id===openId);if(!c||c.dist>REACH_M)return;
   let amt=0,cn=0;
   if(act==='feed'){amt=25;cn=2;}if(act==='play'){amt=20;cn=3;}if(act==='greet'){amt=8;cn=1;}
-  c.h=Math.min(100,c.h+amt);earn(cn);react('💚');renderSheet();renderTarget();
+  c.h=Math.min(100,c.h+amt);earn(cn);react('heart');renderSheet();renderTarget();
 }
 function giveGift(k){
   const c=chars.find(x=>x.id===openId);if(!c||c.dist>REACH_M)return;
   if(!bag[k]||bag[k]<=0)return;
   bag[k]--;const pr=prefOf(c.pers,k);let fx={...GIFT_BASE[pr]},ful=false;
-  if(c.wish===k){fx={h:fx.h+14,coins:fx.coins+14,react:'🌟'};c.wish=null;ful=true;}
+  if(c.wish===k){fx={h:fx.h+14,coins:fx.coins+14,react:'sparkle'};c.wish=null;ful=true;}
   c.h=Math.min(100,c.h+fx.h);c.treasures[k]=(c.treasures[k]||0)+1;
   earn(fx.coins);react(fx.react);if(pr==='love'||ful)confetti();
   renderSheet();renderTarget();updateCoinUI();
 }
 
 // ═══ COINS / FX ═════════════════════════════════════════════════════════
-function earn(a){coins+=a;updateCoinUI();coinFx('+'+a+' 🪙');}
+function earn(a){coins+=a;updateCoinUI();coinFx('+'+a+' ');}
 function updateCoinUI(){document.getElementById('coin-count').textContent=coins;const sc=document.getElementById('shop-coin-count');if(sc)sc.textContent=coins;
   const p=document.getElementById('coin-pill');p.classList.remove('pop');void p.offsetWidth;p.classList.add('pop');setTimeout(()=>p.classList.remove('pop'),200);}
-function coinFx(t){const fx=document.createElement('div');fx.className='coin-fx';fx.textContent=t;fx.style.left='50%';fx.style.top='42%';document.body.appendChild(fx);setTimeout(()=>fx.remove(),1100);}
-function react(e){const fx=document.createElement('div');fx.className='coin-fx';fx.style.color='#fff';fx.style.fontSize='34px';fx.textContent=e;fx.style.left='50%';fx.style.top='40%';document.body.appendChild(fx);setTimeout(()=>fx.remove(),1300);}
+function coinFx(t){const fx=document.createElement('div');fx.className='coin-fx';fx.innerHTML=t+ico('coin');fx.style.left='50%';fx.style.top='42%';document.body.appendChild(fx);setTimeout(()=>fx.remove(),1100);}
+function react(cat){const fx=document.createElement('div');fx.className='coin-fx react-fx';fx.innerHTML=ico(cat);fx.style.left='50%';fx.style.top='40%';document.body.appendChild(fx);setTimeout(()=>fx.remove(),1300);}
 function confetti(){const cs=['#FFD93D','#74C69D','#FF6B6B','#6BA6FF','#F4A261','#C77DFF'];for(let i=0;i<18;i++){const p=document.createElement('div');p.className='confetti';p.style.left='50%';p.style.top='38%';p.style.background=cs[i%cs.length];p.style.setProperty('--cx',rnd(-90,90).toFixed(0)+'px');p.style.setProperty('--cr',rnd(-260,260)+'deg');p.style.animationDelay=(i*0.01)+'s';document.body.appendChild(p);setTimeout(()=>p.remove(),1150);}}
 let toastT=null;
-function toast(emoji,txt){const t=document.getElementById('toast');document.getElementById('toast-emoji').textContent=emoji;document.getElementById('toast-txt').textContent=txt;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
+function toast(cat,txt){const t=document.getElementById('toast');document.getElementById('toast-emoji').innerHTML=ico(cat);document.getElementById('toast-txt').textContent=txt;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
 
 // ═══ WISHES + DECAY TICK (real time) ════════════════════════════════════
 let lastTick=null;
@@ -700,7 +737,7 @@ function tick(ts){
   // reach detection → toast once per arrival
   chars.forEach(c=>{
     const reach=c.dist<=REACH_M;
-    if(reach&&!c._wasReach){toast('🎉',T().arrived(c.name));}
+    if(reach&&!c._wasReach){toast('party',T().arrived(c.name));}
     c._wasReach=reach;
   });
   requestAnimationFrame(tick);
@@ -709,15 +746,15 @@ function tick(ts){
 // ═══ SHOP ═══════════════════════════════════════════════════════════════
 function renderShop(){const sc=document.getElementById('shop-coin-count');if(sc)sc.textContent=coins;
   document.getElementById('shop-grid').innerHTML=ITEM_KEYS.map(k=>{const own=bag[k]||0,af=coins>=ITEM_BASE[k].cost;
-    return `<div class="shop-item"><span class="si-emoji">${idoo(k)}</span><div class="si-info"><div class="si-name">${itemName(k)}</div><div class="si-own">${T().shopOwn}${own}</div></div><button class="si-buy" data-buy="${k}" ${af?'':'disabled'}>🪙 ${ITEM_BASE[k].cost}</button></div>`;}).join('');}
+    return `<div class="shop-item"><span class="si-emoji">${idoo(k)}</span><div class="si-info"><div class="si-name">${itemName(k)}</div><div class="si-own">${T().shopOwn}${own}</div></div><button class="si-buy" data-buy="${k}" ${af?'':'disabled'}>${ico('coin')} ${ITEM_BASE[k].cost}</button></div>`;}).join('');}
 function buyItem(k){if(coins<ITEM_BASE[k].cost)return;coins-=ITEM_BASE[k].cost;bag[k]=(bag[k]||0)+1;updateCoinUI();renderShop();if(openId!=null)renderSheet();}
 
 // ═══ STRINGS ════════════════════════════════════════════════════════════
 function applyStrings(){const s=T();document.documentElement.lang=LANG;
-  document.getElementById('btn-lang').textContent='🌐 '+LANG.toUpperCase();
+  document.getElementById('lang-code').textContent=LANG.toUpperCase();
   document.getElementById('logo-txt').textContent=s.logo;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  document.getElementById('lbl-care').innerHTML=`${s.care} <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert 🪙 op</span>`;
+  document.getElementById('lbl-care').innerHTML=`${s.care} <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert ${ico('coin')} op</span>`;
   set('lbl-give',s.giveT);set('lbl-who',s.who);set('lbl-treasures',s.treasures);set('lbl-wish',s.wishL);set('lbl-locked',s.locked);
   set('lbl-feed',s.feed);set('lbl-play',s.play);set('lbl-greet',s.greet);
   set('shop-title',s.shopTitle);set('shop-sub',s.shopSub);set('shop-close',s.shopDone);
@@ -730,6 +767,7 @@ function switchLang(l){if(l===LANG)return;LANG=l;try{localStorage.setItem('nbhd-
   applyStrings();setGps(demo?'demo':me.lat!==null?'live':'start');render();if(openId!=null)renderSheet();}
 
 // ═══ WIRING ═════════════════════════════════════════════════════════════
+document.getElementById('recenter').addEventListener('click',recenterOnMe);
 document.getElementById('st-close').addEventListener('click',closeSheet);
 document.getElementById('sheet-scrim').addEventListener('click',closeSheet);
 document.querySelectorAll('.actions .act').forEach(b=>b.addEventListener('click',()=>careAction(b.dataset.act)));
@@ -769,6 +807,7 @@ function maybeAskOrient(){
 }
 
 // ═══ INIT ═══════════════════════════════════════════════════════════════
+paintIcons();
 applyStrings();
 render();
 requestAnimationFrame(tick);
