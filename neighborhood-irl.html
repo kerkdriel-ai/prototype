@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Neighborhood — Real Life</title>
+<title>Buurtkrabbels</title>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
@@ -362,7 +362,7 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 <body>
 <div class="wrap">
   <div id="topbar">
-    <div class="tb-logo"><span class="ico" data-ico="satellite"></span> <span id="logo-txt">Buurt IRL</span></div>
+    <div class="tb-logo"><span class="ico" data-ico="satellite"></span> <span id="logo-txt">Buurtkrabbels</span></div>
     <div class="tb-right">
       <div id="coin-pill"><span class="ico" data-ico="coin"></span><span id="coin-count">30</span></div>
       <button class="tb-btn" id="btn-shop"><span class="ico" data-ico="bag"></span></button>
@@ -562,7 +562,7 @@ const TYPE_TXT={nl:{Dragon:'Draak',Owl:'Uil',Cow:'Koe',Monkey:'Aap',Mermaid:'Zee
 const PREF={adventurous:{loves:['gem'],likes:['hat','book']},wise:{loves:['book'],likes:['gem']},gentle:{loves:['flower'],likes:['cookie','apple']},mischievous:{loves:['hat'],likes:['toy','balloon']},shy:{loves:['flower'],likes:['book']},playful:{loves:['balloon','toy'],likes:['cookie']},dreamy:{loves:['balloon'],likes:['flower','gem']},grumpy:{loves:['cookie'],likes:['apple']}};
 const GIFT_BASE={love:{h:28,coins:12,react:'heart'},like:{h:16,coins:6,react:'smile'},neutral:{h:8,coins:2,react:'smile'}};
 const STR={
-  en:{logo:'Neighborhood IRL',gpsStart:'Starting GPS…',gpsLive:(a)=>`Live · accuracy ±${a} m`,gpsWarn:'Weak signal — go outside for a better fix.',gpsDenied:'Location blocked. Using demo mode — move with the D-pad.',gpsNo:'No GPS on this device. Demo mode active.',gpsDemo:'Demo mode · move with the D-pad or arrow keys',
+  en:{logo:'Buurtkrabbels',gpsStart:'Starting GPS…',gpsLive:(a)=>`Live · accuracy ±${a} m`,gpsWarn:'Weak signal — go outside for a better fix.',gpsDenied:'Location blocked. Using demo mode — move with the D-pad.',gpsNo:'No GPS on this device. Demo mode active.',gpsDemo:'Demo mode · move with the D-pad or arrow keys',
     searching:'Looking for neighbors nearby…',
     hintWalk:'Walk toward a neighbor. Get within <b>15 m</b> to talk with them.',
     reachable:(n)=>`You reached <b>${n}</b>! Tap to say hello.`,
@@ -583,7 +583,7 @@ const STR={
     introS1:'Allow GPS. We place 8 neighbors around your spot.',introS2:'The radar shows how far and which way to walk.',introS3:'Get within 15 metres — then you can talk and care.',
     introStart:'Start with GPS',introDemo:'Demo without GPS',introLang:'Schakel naar Nederlands',
     cardN:'N',cardE:'E',cardS:'S',cardW:'W',rescatter:'Re-place here'},
-  nl:{logo:'Buurt IRL',gpsStart:'GPS wordt gestart…',gpsLive:(a)=>`Live · nauwkeurig ±${a} m`,gpsWarn:'Zwak signaal — ga naar buiten voor betere ontvangst.',gpsDenied:'Locatie geblokkeerd. Demo-modus aan — loop met de D-pad.',gpsNo:'Geen GPS op dit apparaat. Demo-modus actief.',gpsDemo:'Demo-modus · loop met de D-pad of pijltjes',
+  nl:{logo:'Buurtkrabbels',gpsStart:'GPS wordt gestart…',gpsLive:(a)=>`Live · nauwkeurig ±${a} m`,gpsWarn:'Zwak signaal — ga naar buiten voor betere ontvangst.',gpsDenied:'Locatie geblokkeerd. Demo-modus aan — loop met de D-pad.',gpsNo:'Geen GPS op dit apparaat. Demo-modus actief.',gpsDemo:'Demo-modus · loop met de D-pad of pijltjes',
     searching:'Zoeken naar buren in de buurt…',
     hintWalk:'Loop naar een buur toe. Kom binnen <b>15 m</b> om te praten.',
     reachable:(n)=>`Je hebt <b>${n}</b> bereikt! Tik om hallo te zeggen.`,

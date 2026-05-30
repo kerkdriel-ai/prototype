@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Neighborhood Drawings — Game Design Document</title>
+  <title>Buurtkrabbels — Draw it, place it, care for it</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
@@ -137,7 +137,7 @@
     .pillar p { font-size: 14px; color: var(--muted); line-height: 1.55; }
 
     /* ─── DRAW ANYTHING ──────────────────────────────── */
-    #draw-anything { background: var(--black); padding: 72px 56px; }
+    #draw-anything { background: var(--green); padding: 72px 56px; }
     .da-header { margin-bottom: 48px; }
     .da-header .label-tag { color: rgba(255,255,255,0.4); }
     .da-header .section-label { color: white; margin-top: 12px; }
@@ -306,10 +306,10 @@
     .q-card p { font-size: 15px; line-height: 1.6; color: var(--text); }
 
     /* ─── FOOTER ─────────────────────────────────────── */
-    footer { background: var(--black); padding: 64px 56px 48px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
+    footer { background: var(--green); padding: 64px 56px 48px; border-radius: var(--radius); display: flex; justify-content: space-between; align-items: flex-end; margin-top: 12px; }
     .footer-title { font-family: var(--font-editorial); font-style: italic; font-size: 48px; color: white; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; }
     .footer-left p { font-size: 15px; color: rgba(255,255,255,0.35); }
-    .footer-right { text-align: right; color: rgba(255,255,255,0.28); font-size: 13px; line-height: 2; }
+    .footer-right { text-align: right; color: rgba(255,255,255,0.55); font-size: 13px; line-height: 2; }
 
     /* ─── REVEAL ─────────────────────────────────────── */
     .reveal { opacity: 0; transform: translateY(36px); transition: opacity 0.65s ease, transform 0.65s ease; }
@@ -337,13 +337,47 @@
       .showcase-header { padding: 0 28px; flex-direction: column; align-items: flex-start; gap: 12px; }
       .showcase-header p { text-align: left; }
     }
+
+    /* ─── DOODLES (shared art from doodles.js) ───────── */
+    .doodle { display: block; width: 100%; height: 100%; }
+    [data-doodle] { display: inline-flex; align-items: center; justify-content: center; }
+    .cc-emoji { width: 96px; height: 96px; }
+    .ex-emoji { width: 60px; height: 60px; }
+    .bcc-emoji { width: 76px; height: 76px; }
+    .interaction-emoji { width: 52px; height: 52px; }
+    .pi { width: 30px; height: 30px; }
+    .se { width: 44px; height: 44px; margin: 0 auto 10px; }
+    .world-feat-icon { width: 32px; height: 32px; }
+    .si { width: 40px; height: 40px; }
+    .safety-card.featured .si { width: 56px; height: 56px; }
+    .pers-name .pn-dood { width: 24px; height: 24px; flex-shrink: 0; }
+    .pers-name { display: flex; align-items: center; gap: 8px; }
+    .navbar-logo .nl-dood { width: 26px; height: 26px; }
+
+    /* ─── START CTA (launch the IRL view) ────────────── */
+    .start-cta {
+      display: inline-flex; align-items: center; gap: 12px; cursor: pointer;
+      background: var(--green); color: #fff; border: none;
+      font-family: var(--font-body); font-size: 18px; font-weight: 600;
+      padding: 16px 14px 16px 26px; border-radius: 200px;
+      box-shadow: 0 8px 30px rgba(45,106,79,0.35); transition: filter .15s, transform .1s;
+    }
+    .start-cta:hover { filter: brightness(1.07); }
+    .start-cta:active { transform: scale(.98); }
+    .start-cta .sc-dot {
+      width: 38px; height: 38px; border-radius: 50%; background: #fff;
+      display: flex; align-items: center; justify-content: center; color: var(--green); font-size: 20px;
+    }
+    .nav-start { font-size: 15px; font-weight: 600; color: #fff; background: var(--green);
+      padding: 10px 18px; border-radius: 200px; display: flex; align-items: center; gap: 7px; }
+    .nav-start .doodle path { stroke: #fff; }
   </style>
 </head>
 <body>
 
 <!-- NAVBAR -->
 <nav class="navbar">
-  <div class="navbar-logo">🏡 Neighborhood Drawings</div>
+  <div class="navbar-logo"><span class="nl-dood" data-doodle="house"></span> Buurtkrabbels</div>
   <ul class="navbar-nav">
     <li><a href="#draw-anything">Characters</a></li>
     <li><a href="#personality">Personality</a></li>
@@ -353,10 +387,7 @@
   </ul>
   <div style="display:flex;align-items:center;gap:10px;">
     <button id="lang-toggle" style="font-family:inherit;font-size:14px;font-weight:600;color:var(--text);background:rgba(0,0,0,0.06);border:none;padding:8px 14px;border-radius:200px;cursor:pointer;">🌐 NL</button>
-    <div class="cta-pill">
-      <a href="#nextsteps">Get started</a>
-      <div class="cta-pill-dot">→</div>
-    </div>
+    <a href="neighborhood-irl.html" class="nav-start"><span style="width:18px;height:18px;display:inline-flex" data-doodle="pin"></span> Start</a>
   </div>
 </nav>
 
@@ -366,8 +397,9 @@
     <h1 class="hero-title">Draw<br><em>anything.</em><br>It comes<br>to life.</h1>
     <div class="hero-right">
       <div class="hero-tag"><div class="hero-tag-dot"></div> For ages 5–12</div>
-      <p>A cow. A dragon. A wizard with three hats. Whatever a child draws moves into a shared neighborhood, gets a personality, and needs a little love to stay happy.</p>
-      <div class="cta-pill">
+      <p>A cow. A dragon. A wizard with three hats. Whatever you draw moves into the real neighborhood around you, gets a personality, and needs a little love to stay happy.</p>
+      <a href="neighborhood-irl.html" class="start-cta">Start the neighborhood <span class="sc-dot">→</span></a>
+      <div class="cta-pill" style="margin-top:16px">
         <a href="#draw-anything">See what's possible</a>
         <div class="cta-pill-dot">↓</div>
       </div>
@@ -378,28 +410,24 @@
   <div class="hero-slider-wrap">
     <div class="inner-slider">
       <div class="slider">
-        <div class="char-card cc1"><div class="cc-emoji">🐉</div><div class="cc-name">Grumpy Dragon</div><div class="cc-tag">Adventurous · 2×/week</div></div>
-        <div class="char-card cc2"><div class="cc-emoji">🧙</div><div class="cc-name">Wise Wizard</div><div class="cc-tag">Wise · 1×/week</div></div>
-        <div class="char-card cc3"><div class="cc-emoji">🐮</div><div class="cc-name">Sleepy Cow</div><div class="cc-tag">Gentle · 1–2×/week</div></div>
-        <div class="char-card cc4"><div class="cc-emoji">🤖</div><div class="cc-name">Curious Robot</div><div class="cc-tag">Mischievous · 3×/week</div></div>
-        <div class="char-card cc5"><div class="cc-emoji">🧚</div><div class="cc-name">Shy Fairy</div><div class="cc-tag">Shy · 2×/week</div></div>
-        <div class="char-card cc6"><div class="cc-emoji">🦕</div><div class="cc-name">Big Dino</div><div class="cc-tag">Playful · daily</div></div>
-        <div class="char-card cc7"><div class="cc-emoji">👻</div><div class="cc-name">Friendly Ghost</div><div class="cc-tag">Dreamy · 1×/week</div></div>
-        <div class="char-card cc8"><div class="cc-emoji">🌵</div><div class="cc-name">Prickly Cactus</div><div class="cc-tag">Grumpy · 2×/week</div></div>
-        <div class="char-card cc9"><div class="cc-emoji">⭐</div><div class="cc-name">Star Creature</div><div class="cc-tag">Dreamy · 1×/week</div></div>
-        <div class="char-card cc10"><div class="cc-emoji">🦄</div><div class="cc-name">Proud Unicorn</div><div class="cc-tag">Adventurous · 2×/week</div></div>
+        <div class="char-card cc1"><div class="cc-emoji" data-doodle="dragon"></div><div class="cc-name">Flamble</div><div class="cc-tag">Adventurous · Dragon</div></div>
+        <div class="char-card cc2"><div class="cc-emoji" data-doodle="owl"></div><div class="cc-name">Old Murp</div><div class="cc-tag">Wise · Owl</div></div>
+        <div class="char-card cc3"><div class="cc-emoji" data-doodle="cow"></div><div class="cc-name">Bessie</div><div class="cc-tag">Gentle · Cow</div></div>
+        <div class="char-card cc4"><div class="cc-emoji" data-doodle="monkey"></div><div class="cc-name">Mojo</div><div class="cc-tag">Mischievous · Monkey</div></div>
+        <div class="char-card cc5"><div class="cc-emoji" data-doodle="mermaid"></div><div class="cc-name">Pip</div><div class="cc-tag">Shy · Mermaid</div></div>
+        <div class="char-card cc6"><div class="cc-emoji" data-doodle="rabbit"></div><div class="cc-name">Hop</div><div class="cc-tag">Playful · Rabbit</div></div>
+        <div class="char-card cc7"><div class="cc-emoji" data-doodle="cloud"></div><div class="cc-name">Floaty</div><div class="cc-tag">Dreamy · Cloud</div></div>
+        <div class="char-card cc8"><div class="cc-emoji" data-doodle="cactus"></div><div class="cc-name">Gerald</div><div class="cc-tag">Grumpy · Cactus</div></div>
       </div>
       <div class="slider">
-        <div class="char-card cc1"><div class="cc-emoji">🐉</div><div class="cc-name">Grumpy Dragon</div><div class="cc-tag">Adventurous · 2×/week</div></div>
-        <div class="char-card cc2"><div class="cc-emoji">🧙</div><div class="cc-name">Wise Wizard</div><div class="cc-tag">Wise · 1×/week</div></div>
-        <div class="char-card cc3"><div class="cc-emoji">🐮</div><div class="cc-name">Sleepy Cow</div><div class="cc-tag">Gentle · 1–2×/week</div></div>
-        <div class="char-card cc4"><div class="cc-emoji">🤖</div><div class="cc-name">Curious Robot</div><div class="cc-tag">Mischievous · 3×/week</div></div>
-        <div class="char-card cc5"><div class="cc-emoji">🧚</div><div class="cc-name">Shy Fairy</div><div class="cc-tag">Shy · 2×/week</div></div>
-        <div class="char-card cc6"><div class="cc-emoji">🦕</div><div class="cc-name">Big Dino</div><div class="cc-tag">Playful · daily</div></div>
-        <div class="char-card cc7"><div class="cc-emoji">👻</div><div class="cc-name">Friendly Ghost</div><div class="cc-tag">Dreamy · 1×/week</div></div>
-        <div class="char-card cc8"><div class="cc-emoji">🌵</div><div class="cc-name">Prickly Cactus</div><div class="cc-tag">Grumpy · 2×/week</div></div>
-        <div class="char-card cc9"><div class="cc-emoji">⭐</div><div class="cc-name">Star Creature</div><div class="cc-tag">Dreamy · 1×/week</div></div>
-        <div class="char-card cc10"><div class="cc-emoji">🦄</div><div class="cc-name">Proud Unicorn</div><div class="cc-tag">Adventurous · 2×/week</div></div>
+        <div class="char-card cc1"><div class="cc-emoji" data-doodle="dragon"></div><div class="cc-name">Flamble</div><div class="cc-tag">Adventurous · Dragon</div></div>
+        <div class="char-card cc2"><div class="cc-emoji" data-doodle="owl"></div><div class="cc-name">Old Murp</div><div class="cc-tag">Wise · Owl</div></div>
+        <div class="char-card cc3"><div class="cc-emoji" data-doodle="cow"></div><div class="cc-name">Bessie</div><div class="cc-tag">Gentle · Cow</div></div>
+        <div class="char-card cc4"><div class="cc-emoji" data-doodle="monkey"></div><div class="cc-name">Mojo</div><div class="cc-tag">Mischievous · Monkey</div></div>
+        <div class="char-card cc5"><div class="cc-emoji" data-doodle="mermaid"></div><div class="cc-name">Pip</div><div class="cc-tag">Shy · Mermaid</div></div>
+        <div class="char-card cc6"><div class="cc-emoji" data-doodle="rabbit"></div><div class="cc-name">Hop</div><div class="cc-tag">Playful · Rabbit</div></div>
+        <div class="char-card cc7"><div class="cc-emoji" data-doodle="cloud"></div><div class="cc-name">Floaty</div><div class="cc-tag">Dreamy · Cloud</div></div>
+        <div class="char-card cc8"><div class="cc-emoji" data-doodle="cactus"></div><div class="cc-name">Gerald</div><div class="cc-tag">Grumpy · Cactus</div></div>
       </div>
     </div>
   </div>
@@ -432,16 +460,16 @@
   <div class="concept-inner reveal">
     <div class="concept-slash">///</div>
     <div class="concept-text">
-      <p>Neighborhood Drawings starts with one rule: the drawing IS the character. A child draws whatever they want — an animal, a monster, a dragon, a cloud with legs — photographs it, and that exact drawing moves into the neighborhood.</p>
+      <p>Buurtkrabbels starts with one rule: the drawing IS the character. A child draws whatever they want — an animal, a monster, a dragon, a cloud with legs — photographs it, and that exact drawing moves into the neighborhood.</p>
       <div class="callout-box">
         <strong>Design Goal</strong>
         No character editor. No avatar shop. Every child who picks up a crayon is already a game designer.
       </div>
       <div class="pillars">
-        <div class="pillar"><div class="pi">🎨</div><h4>Draw anything</h4><p>Animal, creature, monster, wizard — if a child can draw it, it can live in the neighborhood.</p></div>
-        <div class="pillar"><div class="pi">🧬</div><h4>Gets a personality</h4><p>Each drawing is assigned traits (shy, adventurous, grumpy…) that shape its needs and behavior.</p></div>
-        <div class="pillar"><div class="pi">🌿</div><h4>Gentle care</h4><p>Needs depend on personality, not species. A lazy dragon needs as little attention as a chill frog.</p></div>
-        <div class="pillar"><div class="pi">🏘️</div><h4>Shared neighborhood</h4><p>Every character lives in the same world. Visit, leave gifts, make friends.</p></div>
+        <div class="pillar"><div class="pi" data-doodle="pencil"></div><h4>Draw anything</h4><p>Animal, creature, monster, wizard — if a child can draw it, it can live in the neighborhood.</p></div>
+        <div class="pillar"><div class="pi" data-doodle="sparkle"></div><h4>Gets a personality</h4><p>Each drawing is assigned traits (shy, adventurous, grumpy…) that shape its needs and behavior.</p></div>
+        <div class="pillar"><div class="pi" data-doodle="leaf"></div><h4>Gentle care</h4><p>Needs depend on personality, not species. A lazy dragon needs as little attention as a chill frog.</p></div>
+        <div class="pillar"><div class="pi" data-doodle="house"></div><h4>Shared neighborhood</h4><p>Every character lives in the same world. Visit, leave gifts, make friends.</p></div>
       </div>
     </div>
   </div>
@@ -455,16 +483,16 @@
     <p>The game has no list of allowed characters. If it can be drawn, it can move in. Here are some examples — but the real ones will come from children.</p>
   </div>
   <div class="examples-grid reveal">
-    <div class="ex-card ex1" title="Scaly, winged, very opinionated about who gets to pet them."><div class="ex-emoji">🐉</div><h4>Dragon</h4></div>
-    <div class="ex-card ex2" title="Ancient and wise. Doesn't need much attention — already knows everything."><div class="ex-emoji">🧙</div><h4>Wizard</h4></div>
-    <div class="ex-card ex3" title="Classic and calm. Happy with hay twice a week."><div class="ex-emoji">🐮</div><h4>Cow</h4></div>
-    <div class="ex-card ex4" title="Curious about everything, especially buttons they shouldn't press."><div class="ex-emoji">🤖</div><h4>Robot</h4></div>
-    <div class="ex-card ex5" title="Shy at first, but leaves glitter on every doorstep."><div class="ex-emoji">🧚</div><h4>Fairy</h4></div>
-    <div class="ex-card ex6" title="Big, bouncy, playful. Needs daily energy outlets."><div class="ex-emoji">🦕</div><h4>Dinosaur</h4></div>
-    <div class="ex-card ex7" title="Floats dreamily from house to house. Forgets it's scary."><div class="ex-emoji">👻</div><h4>Ghost</h4></div>
-    <div class="ex-card ex8" title="Looks grumpy, is actually very loyal. Just don't hug it."><div class="ex-emoji">🌵</div><h4>Cactus</h4></div>
-    <div class="ex-card ex9" title="A child's original invention. The game is ready for it."><div class="ex-emoji">🌈</div><h4>Cloud creature</h4></div>
-    <div class="ex-card ex10" title="Dreamy, rare, serene. Arrives at dusk."><div class="ex-emoji">⭐</div><h4>Star being</h4></div>
+    <div class="ex-card ex1" title="Scaly, winged, very opinionated about who gets to pet them."><div class="ex-emoji" data-doodle="dragon"></div><h4>Dragon</h4></div>
+    <div class="ex-card ex2" title="Ancient and wise. Doesn't need much attention — already knows everything."><div class="ex-emoji" data-doodle="owl"></div><h4>Wizard</h4></div>
+    <div class="ex-card ex3" title="Classic and calm. Happy with hay twice a week."><div class="ex-emoji" data-doodle="cow"></div><h4>Cow</h4></div>
+    <div class="ex-card ex4" title="Curious about everything, especially buttons they shouldn't press."><div class="ex-emoji" data-doodle="monkey"></div><h4>Robot</h4></div>
+    <div class="ex-card ex5" title="Shy at first, but leaves glitter on every doorstep."><div class="ex-emoji" data-doodle="mermaid"></div><h4>Fairy</h4></div>
+    <div class="ex-card ex6" title="Big, bouncy, playful. Needs daily energy outlets."><div class="ex-emoji" data-doodle="rabbit"></div><h4>Dinosaur</h4></div>
+    <div class="ex-card ex7" title="Floats dreamily from house to house. Forgets it's scary."><div class="ex-emoji" data-doodle="cloud"></div><h4>Ghost</h4></div>
+    <div class="ex-card ex8" title="Looks grumpy, is actually very loyal. Just don't hug it."><div class="ex-emoji" data-doodle="cactus"></div><h4>Cactus</h4></div>
+    <div class="ex-card ex9" title="A child's original invention. The game is ready for it."><div class="ex-emoji" data-doodle="duck"></div><h4>Cloud creature</h4></div>
+    <div class="ex-card ex10" title="Dreamy, rare, serene. Arrives at dusk."><div class="ex-emoji" data-doodle="moon"></div><h4>Star being</h4></div>
   </div>
   <p class="da-note reveal">…and whatever a child draws that we haven't imagined yet.</p>
 </section>
@@ -490,42 +518,42 @@
     <div class="pers-right reveal">
       <div class="pers-grid">
         <div class="pers-card">
-          <div class="pers-name">🌙 Dreamy</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="moon"></span> Dreamy</div>
           <div class="pers-desc">Often found stargazing or napping. Doesn't ask for much. Leaves little constellations around their yard.</div>
           <span class="pers-freq pf-low">1× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">📚 Wise</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="book"></span> Wise</div>
           <div class="pers-desc">Slow and thoughtful. Gives other characters little scrolls of advice. Very self-sufficient.</div>
           <span class="pers-freq pf-low">1–2× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">🌿 Gentle</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="leaf"></span> Gentle</div>
           <div class="pers-desc">Kind to every neighbor, loves decoration gifts. Happy with a check-in a couple times a week.</div>
           <span class="pers-freq pf-low">2× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">🌱 Shy</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="leaf"></span> Shy</div>
           <div class="pers-desc">Hides when visitors first arrive. Opens up slowly. Needs gentle, regular contact to stay happy.</div>
           <span class="pers-freq pf-mid">2–3× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">🗺️ Adventurous</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="map"></span> Adventurous</div>
           <div class="pers-desc">Wanders off on mini quests when left alone. Comes back with items. Needs regular check-ins.</div>
           <span class="pers-freq pf-mid">2–3× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">😤 Grumpy</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="grumpy"></span> Grumpy</div>
           <div class="pers-desc">Hard to please, loyal once you win them over. Complains a lot but secretly loves the attention.</div>
           <span class="pers-freq pf-mid">3× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">😈 Mischievous</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="mischief"></span> Mischievous</div>
           <div class="pers-desc">Pranks neighbors, moves yard items around, "borrows" decorations. Gets antsy without stimulation.</div>
           <span class="pers-freq pf-high">3–4× / week</span>
         </div>
         <div class="pers-card">
-          <div class="pers-name">🎉 Playful</div>
+          <div class="pers-name"><span class="pn-dood" data-doodle="party"></span> Playful</div>
           <div class="pers-desc">Needs daily interaction to burn off energy. Loves every mini-game. Bounces off the walls otherwise.</div>
           <span class="pers-freq pf-high">Daily</span>
         </div>
@@ -549,7 +577,7 @@
   <div class="interaction-list reveal">
     <div class="interaction-item">
       <div class="interaction-num">01</div>
-      <div class="interaction-emoji">🍎</div>
+      <div class="interaction-emoji" data-doodle="apple"></div>
       <div class="interaction-body">
         <h3>Feed</h3>
         <p>Tap the food bowl. What the character eats depends on their personality — a wizard prefers starlight soup, a dragon wants extra-spicy snacks. Each triggers a unique animation.</p>
@@ -558,7 +586,7 @@
     </div>
     <div class="interaction-item">
       <div class="interaction-num">02</div>
-      <div class="interaction-emoji">🎮</div>
+      <div class="interaction-emoji" data-doodle="gamepad"></div>
       <div class="interaction-body">
         <h3>Play</h3>
         <p>Tap your character and a mini-game begins. Playful characters love every game. Grumpy ones need convincing first — but smile more when they win.</p>
@@ -567,7 +595,7 @@
     </div>
     <div class="interaction-item">
       <div class="interaction-num">03</div>
-      <div class="interaction-emoji">💬</div>
+      <div class="interaction-emoji" data-doodle="bubble"></div>
       <div class="interaction-body">
         <h3>Talk</h3>
         <p>Tap the speech bubble. Characters say phrases shaped by their personality — a dreamy star creature speaks in riddles, a mischievous robot announces its latest pranks.</p>
@@ -576,7 +604,7 @@
     </div>
     <div class="interaction-item">
       <div class="interaction-num">04</div>
-      <div class="interaction-emoji">🌸</div>
+      <div class="interaction-emoji" data-doodle="flower"></div>
       <div class="interaction-body">
         <h3>Decorate</h3>
         <p>Drag items into their yard. Characters react differently — a shy character hides behind new decorations, an adventurous one uses them as quest props.</p>
@@ -596,63 +624,63 @@
     <div class="inner-slider">
       <div class="slider">
         <div class="big-char-card bcc1">
-          <div class="bcc-emoji">🐉</div>
+          <div class="bcc-emoji" data-doodle="dragon"></div>
           <div><div class="bcc-name">Flamble</div><div class="bcc-pers">Dragon · Adventurous</div></div>
           <div class="bcc-quote">"I went on a quest while you were gone. Brought back a rock. It's special."</div>
           <div class="bcc-footer"><span class="bcc-freq">2–3× / week</span><span class="bcc-need">needs: quests & food</span></div>
         </div>
         <div class="big-char-card bcc2">
-          <div class="bcc-emoji">🧙</div>
-          <div><div class="bcc-name">Old Murp</div><div class="bcc-pers">Wizard · Wise</div></div>
+          <div class="bcc-emoji" data-doodle="owl"></div>
+          <div><div class="bcc-name">Old Murp</div><div class="bcc-pers">Owl · Wise</div></div>
           <div class="bcc-quote">"I do not require much. A visit. Perhaps some tea. The stars are enough company."</div>
           <div class="bcc-footer"><span class="bcc-freq">1× / week</span><span class="bcc-need">needs: quiet & scrolls</span></div>
         </div>
         <div class="big-char-card bcc3">
-          <div class="bcc-emoji">🐮</div>
+          <div class="bcc-emoji" data-doodle="cow"></div>
           <div><div class="bcc-name">Bessie</div><div class="bcc-pers">Cow · Gentle</div></div>
           <div class="bcc-quote">"Moooo. (That means I am happy to see you. Bring hay next time.)"</div>
           <div class="bcc-footer"><span class="bcc-freq">1–2× / week</span><span class="bcc-need">needs: hay & a pat</span></div>
         </div>
         <div class="big-char-card bcc4">
-          <div class="bcc-emoji">🤖</div>
-          <div><div class="bcc-name">Zorp-9</div><div class="bcc-pers">Robot · Mischievous</div></div>
+          <div class="bcc-emoji" data-doodle="monkey"></div>
+          <div><div class="bcc-name">Mojo</div><div class="bcc-pers">Monkey · Mischievous</div></div>
           <div class="bcc-quote">"I have moved all of the garden gnomes. You're welcome. Also your hat is now mine."</div>
           <div class="bcc-footer"><span class="bcc-freq">3–4× / week</span><span class="bcc-need">needs: pranks & games</span></div>
         </div>
         <div class="big-char-card bcc5">
-          <div class="bcc-emoji">🧚</div>
-          <div><div class="bcc-name">Pip</div><div class="bcc-pers">Fairy · Shy</div></div>
+          <div class="bcc-emoji" data-doodle="mermaid"></div>
+          <div><div class="bcc-name">Pip</div><div class="bcc-pers">Mermaid · Shy</div></div>
           <div class="bcc-quote">"Oh! You came back. I left a flower on your door. You didn't have to notice."</div>
           <div class="bcc-footer"><span class="bcc-freq">2× / week</span><span class="bcc-need">needs: patience & gifts</span></div>
         </div>
         <div class="big-char-card bcc6">
-          <div class="bcc-emoji">🦕</div>
-          <div><div class="bcc-name">Stomps</div><div class="bcc-pers">Dinosaur · Playful</div></div>
+          <div class="bcc-emoji" data-doodle="rabbit"></div>
+          <div><div class="bcc-name">Hop</div><div class="bcc-pers">Rabbit · Playful</div></div>
           <div class="bcc-quote">"PLAY?! PLAY PLAY PLAY!! YESYESYES I HAVE BEEN WAITING ALL DAY."</div>
           <div class="bcc-footer"><span class="bcc-freq">Daily</span><span class="bcc-need">needs: movement & games</span></div>
         </div>
         <div class="big-char-card bcc7">
-          <div class="bcc-emoji">👻</div>
-          <div><div class="bcc-name">Floaty</div><div class="bcc-pers">Ghost · Dreamy</div></div>
+          <div class="bcc-emoji" data-doodle="cloud"></div>
+          <div><div class="bcc-name">Floaty</div><div class="bcc-pers">Cloud · Dreamy</div></div>
           <div class="bcc-quote">"I was looking at the clouds. Did you know some of them look like other clouds?"</div>
           <div class="bcc-footer"><span class="bcc-freq">1× / week</span><span class="bcc-need">needs: peace & stargazing</span></div>
         </div>
         <div class="big-char-card bcc8">
-          <div class="bcc-emoji">🌵</div>
+          <div class="bcc-emoji" data-doodle="cactus"></div>
           <div><div class="bcc-name">Gerald</div><div class="bcc-pers">Cactus · Grumpy</div></div>
           <div class="bcc-quote">"You're late. I waited. I'm not happy about it. …but I saved you a seat."</div>
           <div class="bcc-footer"><span class="bcc-freq">3× / week</span><span class="bcc-need">needs: routine & respect</span></div>
         </div>
       </div>
       <div class="slider">
-        <div class="big-char-card bcc1"><div class="bcc-emoji">🐉</div><div><div class="bcc-name">Flamble</div><div class="bcc-pers">Dragon · Adventurous</div></div><div class="bcc-quote">"I went on a quest while you were gone. Brought back a rock. It's special."</div><div class="bcc-footer"><span class="bcc-freq">2–3× / week</span><span class="bcc-need">needs: quests & food</span></div></div>
-        <div class="big-char-card bcc2"><div class="bcc-emoji">🧙</div><div><div class="bcc-name">Old Murp</div><div class="bcc-pers">Wizard · Wise</div></div><div class="bcc-quote">"I do not require much. A visit. Perhaps some tea."</div><div class="bcc-footer"><span class="bcc-freq">1× / week</span><span class="bcc-need">needs: quiet & scrolls</span></div></div>
-        <div class="big-char-card bcc3"><div class="bcc-emoji">🐮</div><div><div class="bcc-name">Bessie</div><div class="bcc-pers">Cow · Gentle</div></div><div class="bcc-quote">"Moooo. (That means I am happy to see you.)"</div><div class="bcc-footer"><span class="bcc-freq">1–2× / week</span><span class="bcc-need">needs: hay & a pat</span></div></div>
-        <div class="big-char-card bcc4"><div class="bcc-emoji">🤖</div><div><div class="bcc-name">Zorp-9</div><div class="bcc-pers">Robot · Mischievous</div></div><div class="bcc-quote">"I have moved all of the garden gnomes. You're welcome."</div><div class="bcc-footer"><span class="bcc-freq">3–4× / week</span><span class="bcc-need">needs: pranks & games</span></div></div>
-        <div class="big-char-card bcc5"><div class="bcc-emoji">🧚</div><div><div class="bcc-name">Pip</div><div class="bcc-pers">Fairy · Shy</div></div><div class="bcc-quote">"Oh! You came back. I left a flower on your door."</div><div class="bcc-footer"><span class="bcc-freq">2× / week</span><span class="bcc-need">needs: patience & gifts</span></div></div>
-        <div class="big-char-card bcc6"><div class="bcc-emoji">🦕</div><div><div class="bcc-name">Stomps</div><div class="bcc-pers">Dinosaur · Playful</div></div><div class="bcc-quote">"PLAY?! YESYESYES I HAVE BEEN WAITING ALL DAY."</div><div class="bcc-footer"><span class="bcc-freq">Daily</span><span class="bcc-need">needs: movement & games</span></div></div>
-        <div class="big-char-card bcc7"><div class="bcc-emoji">👻</div><div><div class="bcc-name">Floaty</div><div class="bcc-pers">Ghost · Dreamy</div></div><div class="bcc-quote">"I was looking at the clouds."</div><div class="bcc-footer"><span class="bcc-freq">1× / week</span><span class="bcc-need">needs: peace & stargazing</span></div></div>
-        <div class="big-char-card bcc8"><div class="bcc-emoji">🌵</div><div><div class="bcc-name">Gerald</div><div class="bcc-pers">Cactus · Grumpy</div></div><div class="bcc-quote">"You're late. I'm not happy about it. …I saved you a seat."</div><div class="bcc-footer"><span class="bcc-freq">3× / week</span><span class="bcc-need">needs: routine & respect</span></div></div>
+        <div class="big-char-card bcc1"><div class="bcc-emoji" data-doodle="dragon"></div><div><div class="bcc-name">Flamble</div><div class="bcc-pers">Dragon · Adventurous</div></div><div class="bcc-quote">"I went on a quest while you were gone. Brought back a rock. It's special."</div><div class="bcc-footer"><span class="bcc-freq">2–3× / week</span><span class="bcc-need">needs: quests & food</span></div></div>
+        <div class="big-char-card bcc2"><div class="bcc-emoji" data-doodle="owl"></div><div><div class="bcc-name">Old Murp</div><div class="bcc-pers">Owl · Wise</div></div><div class="bcc-quote">"I do not require much. A visit. Perhaps some tea."</div><div class="bcc-footer"><span class="bcc-freq">1× / week</span><span class="bcc-need">needs: quiet & scrolls</span></div></div>
+        <div class="big-char-card bcc3"><div class="bcc-emoji" data-doodle="cow"></div><div><div class="bcc-name">Bessie</div><div class="bcc-pers">Cow · Gentle</div></div><div class="bcc-quote">"Moooo. (That means I am happy to see you.)"</div><div class="bcc-footer"><span class="bcc-freq">1–2× / week</span><span class="bcc-need">needs: hay & a pat</span></div></div>
+        <div class="big-char-card bcc4"><div class="bcc-emoji" data-doodle="monkey"></div><div><div class="bcc-name">Mojo</div><div class="bcc-pers">Monkey · Mischievous</div></div><div class="bcc-quote">"I have moved all of the garden gnomes. You're welcome."</div><div class="bcc-footer"><span class="bcc-freq">3–4× / week</span><span class="bcc-need">needs: pranks & games</span></div></div>
+        <div class="big-char-card bcc5"><div class="bcc-emoji" data-doodle="mermaid"></div><div><div class="bcc-name">Pip</div><div class="bcc-pers">Mermaid · Shy</div></div><div class="bcc-quote">"Oh! You came back. I left a flower on your door."</div><div class="bcc-footer"><span class="bcc-freq">2× / week</span><span class="bcc-need">needs: patience & gifts</span></div></div>
+        <div class="big-char-card bcc6"><div class="bcc-emoji" data-doodle="rabbit"></div><div><div class="bcc-name">Hop</div><div class="bcc-pers">Rabbit · Playful</div></div><div class="bcc-quote">"PLAY?! YESYESYES I HAVE BEEN WAITING ALL DAY."</div><div class="bcc-footer"><span class="bcc-freq">Daily</span><span class="bcc-need">needs: movement & games</span></div></div>
+        <div class="big-char-card bcc7"><div class="bcc-emoji" data-doodle="cloud"></div><div><div class="bcc-name">Floaty</div><div class="bcc-pers">Cloud · Dreamy</div></div><div class="bcc-quote">"I was looking at the clouds."</div><div class="bcc-footer"><span class="bcc-freq">1× / week</span><span class="bcc-need">needs: peace & stargazing</span></div></div>
+        <div class="big-char-card bcc8"><div class="bcc-emoji" data-doodle="cactus"></div><div><div class="bcc-name">Gerald</div><div class="bcc-pers">Cactus · Grumpy</div></div><div class="bcc-quote">"You're late. I'm not happy about it. …I saved you a seat."</div><div class="bcc-footer"><span class="bcc-freq">3× / week</span><span class="bcc-need">needs: routine & respect</span></div></div>
       </div>
     </div>
   </div>
@@ -665,11 +693,11 @@
     <div class="section-label">Always something fun</div>
   </div>
   <div class="states-grid reveal">
-    <div class="state-card s-happy"><div class="se">✨</div><h4>Glowing</h4><p>Just got a visit! Bouncing around, sparkling, doing their happy dance.</p></div>
-    <div class="state-card s-chill"><div class="se">😎</div><h4>Chilling</h4><p>Hanging out in their yard, humming to themselves. All good.</p></div>
-    <div class="state-card s-explore"><div class="se">🗺️</div><h4>Off exploring!</h4><p>Went on a little adventure while you were gone. Came back with something weird.</p></div>
-    <div class="state-card s-drama"><div class="se">🎭</div><h4>Being dramatic</h4><p>Putting on a WHOLE show about wanting attention. Very funny. Very extra.</p></div>
-    <div class="state-card s-sleep"><div class="se">💤</div><h4>Snoozing</h4><p>Night time (8pm–7am). Curled up tight with little Zz bubbles floating up.</p></div>
+    <div class="state-card s-happy"><div class="se" data-doodle="sparkle"></div><h4>Glowing</h4><p>Just got a visit! Bouncing around, sparkling, doing their happy dance.</p></div>
+    <div class="state-card s-chill"><div class="se" data-doodle="smile"></div><h4>Chilling</h4><p>Hanging out in their yard, humming to themselves. All good.</p></div>
+    <div class="state-card s-explore"><div class="se" data-doodle="map"></div><h4>Off exploring!</h4><p>Went on a little adventure while you were gone. Came back with something weird.</p></div>
+    <div class="state-card s-drama"><div class="se" data-doodle="party"></div><h4>Being dramatic</h4><p>Putting on a WHOLE show about wanting attention. Very funny. Very extra.</p></div>
+    <div class="state-card s-sleep"><div class="se" data-doodle="moon"></div><h4>Snoozing</h4><p>Night time (8pm–7am). Curled up tight with little Zz bubbles floating up.</p></div>
   </div>
   <div class="safety-net reveal">
     <div class="sn-tag">Always a happy ending</div>
@@ -691,10 +719,10 @@
     </div>
     <div class="world-right reveal">
       <div class="world-features">
-        <div class="world-feat"><div class="world-feat-icon">🗺️</div><div><h4>Your own plot</h4><p>Each character gets a 4×4 tile plot. The neighborhood expands as more characters move in.</p></div></div>
-        <div class="world-feat"><div class="world-feat-icon">🚶</div><div><h4>Visit neighbors</h4><p>Walk to any yard, interact with the character there, leave a gift. Earn stars, make friends.</p></div></div>
-        <div class="world-feat"><div class="world-feat-icon">🌦️</div><div><h4>Seasons & weather</h4><p>Real calendar seasons, rain, snow. Characters react — umbrellas in rain, snowmen in winter, lanterns at harvest.</p></div></div>
-        <div class="world-feat"><div class="world-feat-icon">🤝</div><div><h4>Friendship badges</h4><p>When two characters visit each other often, a friendship badge appears between their plots on the map.</p></div></div>
+        <div class="world-feat"><div class="world-feat-icon" data-doodle="pin"></div><div><h4>Your own plot</h4><p>Each character gets a 4×4 tile plot. The neighborhood expands as more characters move in.</p></div></div>
+        <div class="world-feat"><div class="world-feat-icon" data-doodle="walk"></div><div><h4>Visit neighbors</h4><p>Walk to any yard, interact with the character there, leave a gift. Earn stars, make friends.</p></div></div>
+        <div class="world-feat"><div class="world-feat-icon" data-doodle="cloud"></div><div><h4>Seasons & weather</h4><p>Real calendar seasons, rain, snow. Characters react — umbrellas in rain, snowmen in winter, lanterns at harvest.</p></div></div>
+        <div class="world-feat"><div class="world-feat-icon" data-doodle="heart"></div><div><h4>Friendship badges</h4><p>When two characters visit each other often, a friendship badge appears between their plots on the map.</p></div></div>
       </div>
     </div>
   </div>
@@ -708,56 +736,30 @@
   </div>
   <div class="safety-grid reveal">
     <div class="safety-card featured">
-      <div class="si" style="font-size:52px">🛡️</div>
+      <div class="si" data-doodle="heart"></div>
       <div>
         <h3>No chat. No purchases. No dark patterns.</h3>
         <p>These three rules are non-negotiable. All content unlocks through play. All communication uses pre-written friendly phrases. No loot boxes, no countdown timers, no pressure mechanics.</p>
       </div>
     </div>
-    <div class="safety-card"><div class="si">👨‍👩‍👧</div><h3>Parental controls</h3><p>A parent or teacher account manages the neighborhood, approves new characters before they go live, controls all notifications, and can remove any character at any time.</p></div>
-    <div class="safety-card"><div class="si">🔐</div><h3>Privacy first</h3><p>Drawings are stored securely and never shared outside the neighborhood group. Child accounts only need a display name. COPPA and GDPR-K compliant by design.</p></div>
+    <div class="safety-card"><div class="si" data-doodle="hand"></div><h3>Parental controls</h3><p>A parent or teacher account manages the neighborhood, approves new characters before they go live, controls all notifications, and can remove any character at any time.</p></div>
+    <div class="safety-card"><div class="si" data-doodle="book"></div><h3>Privacy first</h3><p>Drawings are stored securely and never shared outside the neighborhood group. Child accounts only need a display name. COPPA and GDPR-K compliant by design.</p></div>
   </div>
 </section>
 
-<!-- NEXT STEPS -->
-<section id="nextsteps">
-  <div class="ns-header">
-    <div>
-      <div class="label-tag">What comes next</div>
-      <div class="section-label">Next steps</div>
-    </div>
-    <p>Five steps to move from this document into a real, playable prototype.</p>
-  </div>
-  <div class="steps-list">
-    <div class="step-item reveal"><div class="step-num">1</div><div class="step-body"><h3>Decide on scope</h3><p>Classroom tool (20–30 kids) or open neighborhood (hundreds)? This decision drives the entire technical architecture.</p></div></div>
-    <div class="step-item reveal"><div class="step-num">2</div><div class="step-body"><h3>Paper prototype the personality system</h3><p>Let children draw characters and describe them in words. See which trait descriptions feel natural and what the minimum viable personality picker looks like.</p></div></div>
-    <div class="step-item reveal"><div class="step-num">3</div><div class="step-body"><h3>Test the image pipeline</h3><p>Background removal on real crayon drawings is the make-or-break technical challenge. Prototype it with rembg or similar before anything else.</p></div></div>
-    <div class="step-item reveal"><div class="step-num">4</div><div class="step-body"><h3>Design 2–3 mini-games</h3><p>The "Play" interaction needs mini-games that work for ages 5 through 12 simultaneously — simple, fast, satisfying.</p></div></div>
-    <div class="step-item reveal"><div class="step-num">5</div><div class="step-body"><h3>4-week classroom pilot</h3><p>Run with one class of 20–25 children. Measure happiness, care frequency, and which character types get the most love. Iterate from real data.</p></div></div>
-  </div>
-</section>
-
-<!-- OPEN QUESTIONS -->
-<section id="questions">
-  <div class="questions-header reveal">
-    <div class="label-tag">Still to decide</div>
-    <div class="section-label">Open questions</div>
-  </div>
-  <div class="q-grid reveal">
-    <div class="q-card"><div class="qn">Q1</div><p>Classroom tool or open neighborhood? The answer shapes everything — server architecture, moderation, map size.</p></div>
-    <div class="q-card"><div class="qn">Q2</div><p>How should personality be assigned — child picks traits, a quiz, or does the game suggest based on the drawing description?</p></div>
-    <div class="q-card"><div class="qn">Q3</div><p>Can a child create more than one character? If yes, do they share a plot or get separate ones?</p></div>
-    <div class="q-card"><div class="qn">Q4</div><p>Which 2–3 mini-games launch first? They need to feel right for a dragon AND a cactus AND a shy fairy.</p></div>
-    <div class="q-card"><div class="qn">Q5</div><p>Should offline care sync back to the live world? Technically complex but might matter for children without reliable internet.</p></div>
-    <div class="q-card"><div class="qn">Q6</div><p>Teacher dashboard — a class view showing all characters and their happiness levels at a glance. Worth building in v1?</p></div>
-  </div>
+<!-- START CTA -->
+<section id="start" style="background:var(--green);padding:88px 56px;text-align:center;">
+  <div class="label-tag" style="color:rgba(255,255,255,0.5)">Ready when you are</div>
+  <h2 style="font-family:var(--font-editorial);font-style:italic;font-size:clamp(40px,6vw,72px);color:#fff;letter-spacing:-0.02em;margin:14px 0 12px;line-height:1.05;">Step outside and<br>meet your neighbors.</h2>
+  <p style="color:rgba(255,255,255,0.72);font-size:18px;max-width:520px;margin:0 auto 34px;line-height:1.6;">They're scattered across your real surroundings. Open the map, walk over, and say hello — draw your own, or meet them in AR.</p>
+  <a href="neighborhood-irl.html" class="start-cta" style="background:#fff;color:var(--green);font-size:20px;">Start the neighborhood <span class="sc-dot" style="background:var(--green);color:#fff;">→</span></a>
 </section>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-left">
     <div class="footer-title">Every drawing<br>deserves a home.</div>
-    <p>Neighborhood Drawings — Game Design Document v1.1 — May 2026</p>
+    <p><a href="neighborhood-irl.html" style="color:#fff;font-weight:600;">→ Start the neighborhood</a></p>
   </div>
   <div class="footer-right">
     <p>Ages 5–12</p>
@@ -767,7 +769,11 @@
   </div>
 </footer>
 
+<script src="doodles.js"></script>
 <script>
+  // Render shared doodle art wherever an emoji placeholder was
+  document.querySelectorAll('[data-doodle]').forEach(e=>{ if(window.doodleSVG) e.innerHTML = doodleSVG(e.dataset.doodle); });
+
   // Scroll reveal
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
@@ -782,8 +788,17 @@
 
   // ─── BILINGUAL (NL default, EN toggle) — text-node translator ─────────
   const DICT = {
+    // ── landing-page additions ──
+    "Neighborhood":"Buurt","Start":"Start","Start the neighborhood":"Start de buurt","→ Start the neighborhood":"→ Start de buurt",
+    "A cow. A dragon. A wizard with three hats. Whatever you draw moves into the real neighborhood around you, gets a personality, and needs a little love to stay happy.":"Een koe. Een draak. Een tovenaar met drie hoeden. Wat je ook tekent, het trekt in de echte buurt om je heen, krijgt een persoonlijkheid en heeft een beetje liefde nodig om blij te blijven.",
+    "Adventurous · Dragon":"Avontuurlijk · Draak","Wise · Owl":"Wijs · Uil","Gentle · Cow":"Zachtaardig · Koe","Mischievous · Monkey":"Ondeugend · Aap",
+    "Shy · Mermaid":"Verlegen · Zeemeermin","Playful · Rabbit":"Speels · Konijn","Dreamy · Cloud":"Dromerig · Wolk","Grumpy · Cactus":"Chagrijnig · Cactus",
+    "Dreamy":"Dromerig","Wise":"Wijs","Gentle":"Zachtaardig","Shy":"Verlegen","Adventurous":"Avontuurlijk","Grumpy":"Chagrijnig","Mischievous":"Ondeugend","Playful":"Speels",
+    "Owl · Wise":"Uil · Wijs","Monkey · Mischievous":"Aap · Ondeugend","Mermaid · Shy":"Zeemeermin · Verlegen","Rabbit · Playful":"Konijn · Speels","Cloud · Dreamy":"Wolk · Dromerig",
+    "Ready when you are":"Klaar wanneer jij dat bent","Step outside and":"Stap naar buiten en","meet your neighbors.":"ontmoet je buren.",
+    "They're scattered across your real surroundings. Open the map, walk over, and say hello — draw your own, or meet them in AR.":"Ze staan verspreid in je echte omgeving. Open de kaart, loop ernaartoe en zeg hallo — teken je eigen buur, of ontmoet ze in AR.",
     // navbar
-    "🏡 Neighborhood Drawings":"🏡 Buurttekeningen","Characters":"Personages","Personality":"Persoonlijkheid",
+    "🏡 Neighborhood Drawings":"🏡 Buurtkrabbels","Characters":"Personages","Personality":"Persoonlijkheid",
     "Play":"Spelen","World":"Wereld","Safety":"Veiligheid","Get started":"Aan de slag",
     // hero
     "Draw":"Teken","anything.":"alles.","It comes":"Het komt","to life.":"tot leven.",
@@ -801,7 +816,7 @@
     "Draw anything":"Teken alles","Upload a photo":"Upload een foto","Get a personality":"Krijg een persoonlijkheid",
     "Move in":"Trek in","Give attention":"Geef aandacht","Repeat":"Herhaal",
     // concept
-    "Neighborhood Drawings starts with one rule: the drawing IS the character. A child draws whatever they want — an animal, a monster, a dragon, a cloud with legs — photographs it, and that exact drawing moves into the neighborhood.":"Buurttekeningen begint met één regel: de tekening IS het personage. Een kind tekent wat het maar wil — een dier, een monster, een draak, een wolk met pootjes — fotografeert het, en precies die tekening trekt in de buurt.",
+    "Buurtkrabbels starts with one rule: the drawing IS the character. A child draws whatever they want — an animal, a monster, a dragon, a cloud with legs — photographs it, and that exact drawing moves into the neighborhood.":"Buurtkrabbels begint met één regel: de tekening IS het personage. Een kind tekent wat het maar wil — een dier, een monster, een draak, een wolk met pootjes — fotografeert het, en precies die tekening trekt in de buurt.",
     "Design Goal":"Ontwerpdoel",
     "No character editor. No avatar shop. Every child who picks up a crayon is already a game designer.":"Geen personage-editor. Geen avatarwinkel. Elk kind dat een kleurpotlood pakt, is al een gameontwerper.",
     "Gets a personality":"Krijgt een persoonlijkheid",
@@ -860,9 +875,9 @@
     // showcase
     "Character examples":"Voorbeeldpersonages",
     "The same drawing can have very different personalities — and needs — depending on the traits the child picks.":"Dezelfde tekening kan heel verschillende persoonlijkheden — en behoeften — hebben, afhankelijk van de eigenschappen die het kind kiest.",
-    "Dragon · Adventurous":"Draak · Avontuurlijk","Wizard · Wise":"Tovenaar · Wijs","Cow · Gentle":"Koe · Zachtaardig",
-    "Robot · Mischievous":"Robot · Ondeugend","Fairy · Shy":"Fee · Verlegen","Dinosaur · Playful":"Dinosaurus · Speels",
-    "Ghost · Dreamy":"Spook · Dromerig","Cactus · Grumpy":"Cactus · Chagrijnig",
+    "Dragon · Adventurous":"Draak · Avontuurlijk","Owl · Wise":"Uil · Wijs","Cow · Gentle":"Koe · Zachtaardig",
+    "Monkey · Mischievous":"Aap · Ondeugend","Mermaid · Shy":"Zeemeermin · Verlegen","Rabbit · Playful":"Konijn · Speels",
+    "Cloud · Dreamy":"Wolk · Dromerig","Cactus · Grumpy":"Cactus · Chagrijnig",
     "\"I went on a quest while you were gone. Brought back a rock. It's special.\"":"\"Ik ging op queeste terwijl je weg was. Een steen meegenomen. Hij is bijzonder.\"",
     "\"I do not require much. A visit. Perhaps some tea. The stars are enough company.\"":"\"Ik heb weinig nodig. Een bezoek. Misschien wat thee. De sterren zijn gezelschap genoeg.\"",
     "\"I do not require much. A visit. Perhaps some tea.\"":"\"Ik heb weinig nodig. Een bezoek. Misschien wat thee.\"",
@@ -931,7 +946,7 @@
     "Teacher dashboard — a class view showing all characters and their happiness levels at a glance. Worth building in v1?":"Leraardashboard — een klasoverzicht met alle personages en hun blijdschap in één oogopslag. De moeite waard in v1?",
     // footer
     "Every drawing":"Elke tekening","deserves a home.":"verdient een thuis.",
-    "Neighborhood Drawings — Game Design Document v1.1 — May 2026":"Buurttekeningen — Game Design Document v1.1 — mei 2026",
+    "Neighborhood Drawings — Game Design Document v1.1 — May 2026":"Buurtkrabbels — Game Design Document v1.1 — mei 2026",
     "Ages 5–12":"Leeftijd 5–12","No chat · No purchases":"Geen chat · Geen aankopen",
   };
 
