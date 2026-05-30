@@ -1,0 +1,7 @@
+{
+	"wave": { "motion_cfg": "examples/config/motion/wave_hello.yaml", "retarget_cfg": "examples/config/retarget/fair1_ppf.yaml" },
+	"jump": { "motion_cfg": "examples/config/motion/jumping.yaml", "retarget_cfg": "examples/config/retarget/fair1_ppf.yaml" },
+	"jumpingjacks": { "motion_cfg": "examples/config/motion/jumping_jacks.yaml", "retarget_cfg": "examples/config/retarget/cmu1_pfp.yaml" },
+	"dance": { "motion_cfg": "examples/config/motion/dab.yaml", "retarget_cfg": "examples/config/retarget/fair1_ppf.yaml" },
+	"zombie": { "motion_cfg": "examples/config/motion/zombie.yaml", "retarget_cfg": "examples/config/retarget/fair1_ppf.yaml" }
+}
