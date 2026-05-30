@@ -242,6 +242,8 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
   background:linear-gradient(180deg,#3a8a64,#2D6A4F);box-shadow:0 4px 14px rgba(45,106,79,.35);transition:filter .15s,transform .1s;}
 .ar-cta:hover{filter:brightness(1.06);}.ar-cta:active{transform:scale(.98);}
 .ar-cta .ico{width:22px;height:22px;}.ar-cta .doodle path{stroke:#fff;}
+/* brief cooldown after a care action so it can't be spam-clicked */
+.act.cooling,.ar-act.cooling{opacity:.4;pointer-events:none;transition:opacity .15s;}
 
 /* ─── AR MODE (camera passthrough + animated doodle) ─── */
 #ar{position:fixed;inset:0;z-index:84;background:#0a0a0a;overflow:hidden;}
@@ -257,10 +259,10 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
   background:#fff;color:var(--text);font-size:14px;font-weight:600;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.3);
   opacity:0;transform:translateY(8px) scale(.9);transition:opacity .2s,transform .2s;white-space:nowrap;}
 #ar-bubble.show{opacity:1;transform:translateY(0) scale(1);}
-#ar-doodle{width:min(56vw,240px);aspect-ratio:1;padding:20px;border-radius:50%;
-  background:var(--c,#CDE7C8);box-shadow:0 14px 34px rgba(0,0,0,.45),inset 0 0 0 3px rgba(255,255,255,.65);
-  animation:arBob 2.4s ease-in-out infinite;}
-#ar-doodle .doodle{width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
+#ar-doodle{width:min(62vw,270px);aspect-ratio:1;animation:arBob 2.4s ease-in-out infinite;}
+/* just the line drawing — white halo keeps it legible over any camera scene */
+#ar-doodle .doodle{width:100%;height:100%;
+  filter:drop-shadow(0 0 5px rgba(255,255,255,.95)) drop-shadow(0 0 2px rgba(255,255,255,.95)) drop-shadow(0 4px 5px rgba(0,0,0,.35));}
 #ar-shadow{width:46%;height:15px;margin-top:8px;border-radius:50%;background:rgba(0,0,0,.4);filter:blur(4px);
   animation:arShadow 2.4s ease-in-out infinite;}
 @keyframes arBob{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-20px) scale(1.02);}}
@@ -554,16 +556,16 @@ function offset(lat0,lng0,d,brg){
 function scatterAround(lat0,lng0,save=true){
   chars.forEach((c,i)=>{
     const brg=(i*45)+rnd(-18,18);          // spread roughly evenly around you
-    const d=rnd(40,160);
+    const d=i===0?rnd(6,12):rnd(40,160);   // DEBUG: keep one neighbour within reach (≤15 m)
     const p=offset(lat0,lng0,d,brg);
     c.lat=p.lat;c.lng=p.lng;
   });
-  if(save){try{localStorage.setItem('nbhd-irl-world',JSON.stringify({
+  if(save){try{localStorage.setItem('nbhd-irl-world-dbg',JSON.stringify({
     origin:[lat0,lng0],pts:chars.map(c=>[c.lat,c.lng])
   }));}catch(e){}}
 }
 function loadWorld(){
-  try{const w=JSON.parse(localStorage.getItem('nbhd-irl-world'));
+  try{const w=JSON.parse(localStorage.getItem('nbhd-irl-world-dbg'));
     if(w&&w.pts&&w.pts.length===chars.length){chars.forEach((c,i)=>{c.lat=w.pts[i][0];c.lng=w.pts[i][1];});return true;}
   }catch(e){}
   return false;
@@ -776,11 +778,16 @@ function renderSheet(){
     : `<span class="treasure-empty">${T().treasureEmpty}</span>`;
   paintIcons(document.getElementById('sheet')); // fill any data-ico placeholders from string data
 }
+let careLock=false;
+function setCareLock(on){careLock=on;
+  document.querySelectorAll('.actions .act,#ar-actions .ar-act').forEach(b=>b.classList.toggle('cooling',on));}
 function careAction(act){
-  const c=chars.find(x=>x.id===openId);if(!c||c.dist>REACH_M)return;
+  const c=chars.find(x=>x.id===openId);if(!c||c.dist>REACH_M||careLock)return false; // no spam-clicking
   let amt=0,cn=0;
   if(act==='feed'){amt=25;cn=2;}if(act==='play'){amt=20;cn=3;}if(act==='greet'){amt=8;cn=1;}
   c.h=Math.min(100,c.h+amt);earn(cn);react('heart');renderSheet();renderTarget();
+  setCareLock(true);setTimeout(()=>setCareLock(false),900);
+  return true;
 }
 function giveGift(k){
   const c=chars.find(x=>x.id===openId);if(!c||c.dist>REACH_M)return;
@@ -890,8 +897,7 @@ function arAnchor(e){
 }
 function arCare(act){
   const c=chars.find(x=>x.id===openId); if(!c||c.dist>REACH_M) return;
-  careAction(act);                 // shared: happiness + coins + heart float
-  arHopOnce('cheer'); arSay(pick(P_TEXT[LANG][c.pers].says));
+  if(careAction(act)){ arHopOnce('cheer'); arSay(pick(P_TEXT[LANG][c.pers].says)); } // only react if it applied
 }
 window.addEventListener('deviceorientation',arAnchor,true);
 
