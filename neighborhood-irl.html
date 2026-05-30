@@ -235,6 +235,57 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
 .dbtn:active{background:var(--green);color:#fff;}
 .d-up{top:0;left:44px;} .d-down{bottom:0;left:44px;} .d-left{top:44px;left:0;} .d-right{top:44px;right:0;}
 #dpad-lbl{position:absolute;top:50px;left:50px;font-size:9px;color:var(--muted);text-align:center;width:32px;line-height:1.1;}
+
+/* ─── AR CTA in sheet ─── */
+.ar-cta{width:100%;margin-top:12px;padding:13px;border-radius:16px;border:none;cursor:pointer;
+  font-family:var(--font);font-size:15px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;
+  background:linear-gradient(180deg,#3a8a64,#2D6A4F);box-shadow:0 4px 14px rgba(45,106,79,.35);transition:filter .15s,transform .1s;}
+.ar-cta:hover{filter:brightness(1.06);}.ar-cta:active{transform:scale(.98);}
+.ar-cta .ico{width:22px;height:22px;}.ar-cta .doodle path{stroke:#fff;}
+
+/* ─── AR MODE (camera passthrough + animated doodle) ─── */
+#ar{position:fixed;inset:0;z-index:84;background:#0a0a0a;overflow:hidden;}
+#ar.hidden{display:none;}
+#ar-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#0a0a0a;}
+#ar.no-cam #ar-cam{display:none;}
+#ar.no-cam{background:radial-gradient(circle at 50% 28%, #2D6A4F, #0a0a0a 80%);}
+#ar-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),transparent 22%,transparent 62%,rgba(0,0,0,.45));pointer-events:none;}
+#ar-stage{position:absolute;inset:0;pointer-events:none;}
+#ar-char{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);transition:transform .12s linear;
+  display:flex;flex-direction:column;align-items:center;}
+#ar-bubble{max-width:62vw;margin-bottom:12px;padding:9px 15px;border-radius:18px 18px 18px 4px;
+  background:#fff;color:var(--text);font-size:14px;font-weight:600;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.3);
+  opacity:0;transform:translateY(8px) scale(.9);transition:opacity .2s,transform .2s;white-space:nowrap;}
+#ar-bubble.show{opacity:1;transform:translateY(0) scale(1);}
+#ar-doodle{width:min(56vw,240px);aspect-ratio:1;padding:20px;border-radius:50%;
+  background:var(--c,#CDE7C8);box-shadow:0 14px 34px rgba(0,0,0,.45),inset 0 0 0 3px rgba(255,255,255,.65);
+  animation:arBob 2.4s ease-in-out infinite;}
+#ar-doodle .doodle{width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.12));}
+#ar-shadow{width:46%;height:15px;margin-top:8px;border-radius:50%;background:rgba(0,0,0,.4);filter:blur(4px);
+  animation:arShadow 2.4s ease-in-out infinite;}
+@keyframes arBob{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-20px) scale(1.02);}}
+@keyframes arShadow{0%,100%{transform:scale(1);opacity:.4;}50%{transform:scale(.66);opacity:.22;}}
+#ar-char.hop #ar-doodle{animation:arHop .75s ease;}
+@keyframes arHop{0%{transform:translateY(0) scaleY(1);}18%{transform:translateY(2px) scaleY(.86);}
+  45%{transform:translateY(-72px) scaleY(1.08);}68%{transform:translateY(0) scaleY(.9);}82%{transform:translateY(-14px);}100%{transform:translateY(0);}}
+#ar-char.cheer #ar-doodle{animation:arHop .6s ease 2;}
+#ar-top{position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:max(14px,env(safe-area-inset-top)) 16px 10px;}
+#ar-name{font-family:var(--serif);font-style:italic;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+#ar-close{flex-shrink:0;width:40px;height:40px;border-radius:50%;border:none;background:rgba(0,0,0,.45);
+  color:#fff;font-size:19px;cursor:pointer;backdrop-filter:blur(4px);}
+#ar-hint{position:absolute;left:50%;top:max(58px,calc(env(safe-area-inset-top) + 44px));transform:translateX(-50%);z-index:2;
+  font-size:12px;font-weight:600;color:#fff;background:rgba(0,0,0,.4);padding:6px 13px;border-radius:200px;
+  backdrop-filter:blur(4px);white-space:nowrap;opacity:1;transition:opacity .4s;}
+#ar-hint.hide{opacity:0;}
+#ar-actions{position:absolute;left:0;right:0;bottom:max(22px,env(safe-area-inset-bottom));z-index:3;
+  display:flex;gap:10px;justify-content:center;padding:0 16px;}
+.ar-act{display:flex;flex-direction:column;align-items:center;gap:3px;width:84px;padding:11px 6px;border:none;border-radius:16px;
+  background:rgba(255,255,255,.92);color:var(--text);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.3);transition:transform .1s;backdrop-filter:blur(4px);}
+.ar-act:active{transform:scale(.95);}
+.ar-act:disabled{opacity:.45;cursor:not-allowed;}
+.ar-act .ico{width:24px;height:24px;}
 </style>
 </head>
 <body>
@@ -292,6 +343,7 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
   <div class="sheet-scroll">
     <div class="st-status" id="st-status">—</div>
     <div class="h-row"><div class="h-bar"><div class="h-fill" id="st-hfill"></div></div><div class="h-pct" id="st-hpct">—</div></div>
+    <button class="ar-cta" id="ar-open"><span class="ico" data-ico="camera"></span> <span id="lbl-ar">Bekijk in AR</span></button>
     <div id="st-locked" style="display:none"><div class="sec-title" id="lbl-locked">Te ver weg</div><div class="locked-note" id="locked-note"></div></div>
     <div id="st-wish-sec" style="display:none"><div class="sec-title" id="lbl-wish">Wens</div><div class="wish-banner" id="st-wish"></div></div>
     <div class="sec-title" id="lbl-care">Geef aandacht <span style="color:#caa024;font-weight:700;text-transform:none;letter-spacing:0">· levert <span class="ico" data-ico="coin"></span> op</span></div>
@@ -317,6 +369,29 @@ body{color:var(--text);font-family:var(--font);font-size:14px;
     <div class="shop-sub" id="shop-sub">Geef munten uit om je tas te vullen. Loop daarna echt naar een buur en geef ze iets.</div>
     <div class="shop-grid" id="shop-grid"></div>
     <button class="shop-close" id="shop-close">Klaar</button>
+  </div>
+</div>
+
+<!-- AR MODE -->
+<div id="ar" class="hidden">
+  <video id="ar-cam" autoplay playsinline muted></video>
+  <div id="ar-scrim"></div>
+  <div id="ar-stage">
+    <div id="ar-char">
+      <div id="ar-bubble"></div>
+      <div id="ar-doodle"></div>
+      <div id="ar-shadow"></div>
+    </div>
+  </div>
+  <div id="ar-hint">Beweeg je telefoon om rond te kijken</div>
+  <div id="ar-top">
+    <div id="ar-name">—</div>
+    <button id="ar-close">✕</button>
+  </div>
+  <div id="ar-actions">
+    <button class="ar-act" data-act="feed"><span class="ico" data-ico="apple"></span><span id="ar-lbl-feed">Voeren</span></button>
+    <button class="ar-act" data-act="play"><span class="ico" data-ico="gamepad"></span><span id="ar-lbl-play">Spelen</span></button>
+    <button class="ar-act" data-act="greet"><span class="ico" data-ico="hand"></span><span id="ar-lbl-greet">Groeten</span></button>
   </div>
 </div>
 
@@ -391,6 +466,7 @@ const STR={
     sayLove:'I love it!!',sayLike:'Thank you!',sayMeh:'Oh, thanks.',
     wishWant:(it)=>`They'd <b>love</b> a ${it}.`,wishReward:'Fulfilling a wish: bonus <span class="ico" data-ico="coin"></span> + big happiness boost.',
     shopTitle:'The Corner Shop',shopSub:'Spend coins to stock your bag. Then walk to a neighbor and give them one.',shopOwn:'In bag: ',shopDone:'Done',
+    arView:'View in AR',arHint:'Move your phone to look around',arFeed:'Feed',arPlay:'Play',arGreet:'Greet',
     introTitle:'The neighborhood around you',introSub:'The characters are scattered across your <b>real surroundings</b>. You have to physically walk to them — to the end of the street, around the corner — to reach them.',
     introS1:'Allow GPS. We place 8 neighbors around your spot.',introS2:'The radar shows how far and which way to walk.',introS3:'Get within 15 metres — then you can talk and care.',
     introStart:'Start with GPS',introDemo:'Demo without GPS',introLang:'Schakel naar Nederlands',
@@ -409,6 +485,7 @@ const STR={
     sayLove:'Ik vind het geweldig!!',sayLike:'Dank je wel!',sayMeh:'Oh, bedankt.',
     wishWant:(it)=>`Ze zouden <b>dolblij</b> zijn met een ${it}.`,wishReward:'Een wens vervullen: bonus <span class="ico" data-ico="coin"></span> + flinke blijdschap-boost.',
     shopTitle:'De Buurtwinkel',shopSub:'Geef munten uit om je tas te vullen. Loop daarna echt naar een buur en geef ze iets.',shopOwn:'In tas: ',shopDone:'Klaar',
+    arView:'Bekijk in AR',arHint:'Beweeg je telefoon om rond te kijken',arFeed:'Voeren',arPlay:'Spelen',arGreet:'Groeten',
     introTitle:'De buurt om je heen',introSub:'De personages staan verspreid in je <b>echte omgeving</b>. Je moet er in het echt naartoe lopen — naar het eind van de straat, om de hoek — om ze te bereiken.',
     introS1:'Sta GPS toe. We plaatsen 8 buren rondom jouw plek.',introS2:'De radar toont hoe ver en welke kant je op moet lopen.',introS3:'Kom binnen 15 meter — dan kun je praten en zorgen.',
     introStart:'Start met GPS',introDemo:'Demo zonder GPS',introLang:'Switch to English',
@@ -749,6 +826,75 @@ function renderShop(){const sc=document.getElementById('shop-coin-count');if(sc)
     return `<div class="shop-item"><span class="si-emoji">${idoo(k)}</span><div class="si-info"><div class="si-name">${itemName(k)}</div><div class="si-own">${T().shopOwn}${own}</div></div><button class="si-buy" data-buy="${k}" ${af?'':'disabled'}>${ico('coin')} ${ITEM_BASE[k].cost}</button></div>`;}).join('');}
 function buyItem(k){if(coins<ITEM_BASE[k].cost)return;coins-=ITEM_BASE[k].cost;bag[k]=(bag[k]||0)+1;updateCoinUI();renderShop();if(openId!=null)renderSheet();}
 
+// ═══ AR MODE (camera passthrough + animated doodle) ═════════════════════
+let arActive=false, arStream=null, arBaseA=null, arBaseB=null, arHopT=null, arBubbleT=null, arHintT=null;
+const arEl=()=>document.getElementById('ar');
+
+function openAR(){
+  const c=chars.find(x=>x.id===openId); if(!c) return;
+  arActive=true; arBaseA=null; arBaseB=null;
+  const el=arEl(); el.classList.remove('hidden','no-cam');
+  document.getElementById('ar-name').textContent=c.name;
+  const dood=document.getElementById('ar-doodle'); dood.innerHTML=doodleSVG(c.cat); dood.style.setProperty('--c',c.color);
+  document.getElementById('ar-char').style.transform='translate(-50%,-50%)';
+  document.getElementById('ar-bubble').classList.remove('show');
+  const hint=document.getElementById('ar-hint'); hint.textContent=T().arHint; hint.classList.remove('hide');
+  clearTimeout(arHintT); arHintT=setTimeout(()=>hint.classList.add('hide'),3500);
+  document.querySelectorAll('#ar-actions .ar-act').forEach(b=>b.disabled=c.dist>REACH_M);
+  maybeAskOrient();        // iOS orientation permission (from this user gesture)
+  startArCamera();         // rear camera (from this user gesture)
+  scheduleArHop(); scheduleArBubble();
+}
+function startArCamera(){
+  const v=document.getElementById('ar-cam');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){arEl().classList.add('no-cam');return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})
+    .then(s=>{arStream=s;v.srcObject=s;v.play().catch(()=>{});})
+    .catch(()=>{arEl().classList.add('no-cam');});
+}
+function closeAR(){
+  arActive=false; arEl().classList.add('hidden');
+  if(arStream){arStream.getTracks().forEach(t=>t.stop());arStream=null;}
+  document.getElementById('ar-cam').srcObject=null;
+  clearTimeout(arHopT); clearTimeout(arBubbleT); clearTimeout(arHintT);
+}
+function arHopOnce(kind){
+  const ch=document.getElementById('ar-char'); if(!ch) return;
+  ch.classList.remove('hop','cheer'); void ch.offsetWidth;          // restart animation
+  ch.classList.add(kind||'hop'); setTimeout(()=>ch.classList.remove('hop','cheer'),820);
+}
+function scheduleArHop(){
+  clearTimeout(arHopT);
+  arHopT=setTimeout(()=>{ if(!arActive)return; arHopOnce('hop'); scheduleArHop(); }, 2200+Math.random()*2600);
+}
+function arSay(txt){
+  const b=document.getElementById('ar-bubble'); if(!b)return;
+  b.textContent=txt; b.classList.add('show'); setTimeout(()=>b.classList.remove('show'),2200);
+}
+function scheduleArBubble(){
+  clearTimeout(arBubbleT);
+  arBubbleT=setTimeout(()=>{ if(!arActive)return;
+    const c=chars.find(x=>x.id===openId); if(c) arSay(pick(P_TEXT[LANG][c.pers].says));
+    scheduleArBubble();
+  }, 1400+Math.random()*3200);
+}
+// world-anchor the character: pan the phone and it stays "placed" in space
+function arAnchor(e){
+  if(!arActive||e.alpha==null)return;
+  if(arBaseA==null){arBaseA=e.alpha;arBaseB=e.beta||0;}
+  const dA=((e.alpha-arBaseA+540)%360)-180;        // yaw delta −180..180
+  const dB=(e.beta||0)-arBaseB;                     // pitch delta
+  const x=Math.max(-innerWidth*0.55,Math.min(innerWidth*0.55,-dA*9));
+  const y=Math.max(-innerHeight*0.32,Math.min(innerHeight*0.32,dB*7));
+  document.getElementById('ar-char').style.transform=`translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+}
+function arCare(act){
+  const c=chars.find(x=>x.id===openId); if(!c||c.dist>REACH_M) return;
+  careAction(act);                 // shared: happiness + coins + heart float
+  arHopOnce('cheer'); arSay(pick(P_TEXT[LANG][c.pers].says));
+}
+window.addEventListener('deviceorientation',arAnchor,true);
+
 // ═══ STRINGS ════════════════════════════════════════════════════════════
 function applyStrings(){const s=T();document.documentElement.lang=LANG;
   document.getElementById('lang-code').textContent=LANG.toUpperCase();
@@ -758,6 +904,7 @@ function applyStrings(){const s=T();document.documentElement.lang=LANG;
   set('lbl-give',s.giveT);set('lbl-who',s.who);set('lbl-treasures',s.treasures);set('lbl-wish',s.wishL);set('lbl-locked',s.locked);
   set('lbl-feed',s.feed);set('lbl-play',s.play);set('lbl-greet',s.greet);
   set('shop-title',s.shopTitle);set('shop-sub',s.shopSub);set('shop-close',s.shopDone);
+  set('lbl-ar',s.arView);set('ar-lbl-feed',s.arFeed);set('ar-lbl-play',s.arPlay);set('ar-lbl-greet',s.arGreet);
   set('intro-title',s.introTitle);
   document.getElementById('intro-sub').innerHTML=s.introSub;
   set('intro-s1',s.introS1);set('intro-s2',s.introS2);set('intro-s3',s.introS3);
@@ -768,6 +915,9 @@ function switchLang(l){if(l===LANG)return;LANG=l;try{localStorage.setItem('nbhd-
 
 // ═══ WIRING ═════════════════════════════════════════════════════════════
 document.getElementById('recenter').addEventListener('click',recenterOnMe);
+document.getElementById('ar-open').addEventListener('click',openAR);
+document.getElementById('ar-close').addEventListener('click',closeAR);
+document.querySelectorAll('#ar-actions .ar-act').forEach(b=>b.addEventListener('click',()=>arCare(b.dataset.act)));
 document.getElementById('st-close').addEventListener('click',closeSheet);
 document.getElementById('sheet-scrim').addEventListener('click',closeSheet);
 document.querySelectorAll('.actions .act').forEach(b=>b.addEventListener('click',()=>careAction(b.dataset.act)));
@@ -795,7 +945,7 @@ document.querySelectorAll('#dpad .dbtn').forEach(b=>{
 });
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)){if(!demo)return;e.preventDefault();
   if(k==='arrowup'||k==='w')held.up=true;if(k==='arrowdown'||k==='s')held.down=true;if(k==='arrowleft'||k==='a')held.left=true;if(k==='arrowright'||k==='d')held.right=true;}
-  if(k==='escape'&&openId!=null)closeSheet();});
+  if(k==='escape'){if(arActive)closeAR();else if(openId!=null)closeSheet();}});
 window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(k==='arrowup'||k==='w')held.up=false;if(k==='arrowdown'||k==='s')held.down=false;if(k==='arrowleft'||k==='a')held.left=false;if(k==='arrowright'||k==='d')held.right=false;});
 setInterval(()=>{if(!demo)return;let dx=0,dy=0;if(held.up)dy+=DEMO_STEP;if(held.down)dy-=DEMO_STEP;if(held.left)dx-=DEMO_STEP;if(held.right)dx+=DEMO_STEP;if(dx||dy)moveDemo(dx,dy);},120);
 
